@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dealhunter"
+version = "0.1.0"
+description = "Local marketplace deal hunter: search, score and track offers over time"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["olx", "marketplace", "scraping", "deals", "bikes", "scoring"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
+dependencies = [
+    "curl_cffi>=0.7",
+    "PyYAML>=6.0",
+    "Jinja2>=3.1",
+]
+
+[project.scripts]
+dealhunter = "dealhunter.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dealhunter = ["report/*.j2"]

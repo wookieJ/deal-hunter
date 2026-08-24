@@ -1,0 +1,39 @@
+# Global runtime settings (not search preferences - those live in config/profiles/).
+# Where you live. Used ONLY to compute travel distance for the reports.
+# Deliberately separate from a profile's search area: you may well hunt for
+# offers somewhere you do not live.
+#
+# This file is committed, so keep only a placeholder here. Put your real address
+# in config/settings.local.yml, which is gitignored and overrides these values:
+#
+#   home:
+#     name: dom
+#     lat: 52.1234
+#     lon: 17.1234
+home:
+  name: Poznan (przyklad - nadpisz w settings.local.yml)
+  lat: 52.4064
+  lon: 16.9252
+
+http:
+  impersonate: chrome        # curl_cffi browser fingerprint
+  timeout_s: 30
+  retries: 3
+  rate_limit_s: 1.0          # min delay between requests - be a polite guest
+storage:
+  db_path: data/dealhunter.sqlite3
+  keep_raw_payloads: true    # archive raw JSON per run under data/raw/ (cheap insurance)
+report:
+  dir: reports
+  top_n: 15                  # how many offers to show in console/HTML highlights
+
+travel:
+  # Driving distance/time from your home to each offer, shown in the reports.
+  # Uses the free public OSRM demo server - no API key, no account.
+  # NOTE: OSRM rejects browser-impersonating clients, so this call must NOT reuse
+  # the curl_cffi Chrome session that OLX requires. Opposite requirements.
+  enabled: true
+  url: https://router.project-osrm.org
+  rate_limit_s: 1.0
+  max_lookups_per_run: 40   # only offers actually shown in the report are looked up
+  road_factor: 1.35         # fallback: straight-line distance x this, if routing fails
