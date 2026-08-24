@@ -29,3 +29,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Personal profile overrides (body measurements, budget, city) - never commit
+config/profiles/*.local.yml

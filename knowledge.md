@@ -30,6 +30,7 @@ rewrite.
 | `README.md` | Setup and usage. |
 | `config/settings.yml` | Runtime settings: rate limit, paths, report size, placeholder home. |
 | `config/settings.local.yml` | Personal overrides incl. real home address. Gitignored. |
+| `config/profiles/*.local.yml` | Personal profile overrides: measurements, budget, city. Gitignored. |
 | `config/profiles/*.yml` | What counts as a good deal. Pure data - tune here, not in code. |
 | `src/dealhunter/sources/` | Marketplace adapters (`olx.py`). |
 | `src/dealhunter/normalize/` | Free text -> structured attributes (`bikes.py`). |
@@ -54,11 +55,11 @@ rewrite.
 | 2026-08-24 | Rule-based scoring only in v1; `ENRICHERS` list left empty | Deterministic, free, debuggable; LLM can append later | LLM/image analysis is an append, not a refactor |
 | 2026-08-24 | Do NOT auto-deactivate offers missing from a run | A run only sees the first N pages; absence usually means pushed out by newer offers, not sold | "Offer gone" detection needs per-listing re-check (post-MVP) |
 | 2026-08-24 | Negation guard on disqualifiers | Sellers advertise absence of defects ("bez pęknięć ramy"); naive matching hid good offers | Best-described offers are no longer wrongly rejected |
-| 2026-08-24 | Budget fit is a score multiplier, not a weighted dimension | A flat sum let a 5000 PLN bike win on groupset alone; owner's sweet spot is ~3000 PLN | Expensive bikes keep ~75% of spec score - must be exceptional to win, but still surface |
+| 2026-08-24 | Budget fit is a score multiplier, not a weighted dimension | A flat sum let a 5000 PLN bike win on groupset alone; the owner's sweet spot sits well below the top of the range | Expensive bikes keep ~75% of spec score - must be exceptional to win, but still surface |
 | 2026-08-24 | Sizing scored on manufacturer geometry (reach/stack) where known | Nominal sizes are not comparable across brands or generations - gen-2 Silex M has more reach than gen-1 M | Needs a geometry table; label-based sizing is confidence-capped and marked |
 | 2026-08-24 | Never invent geometry numbers | Guessed reach/stack yields confident, wrong fit advice | Table ships with Merida Silex only (owner-supplied); rest falls back to labels |
 | 2026-08-24 | Search area and home address kept separate | One field cannot serve both: the search area is where to hunt (a search parameter), home is where the owner lives (report distances only) | `search.<source>.area` narrows the hunt and the 1000-cap; `proximity_to` picks the scoring anchor |
-| 2026-08-24 | Home address in gitignored `settings.local.yml` | Repo is public on GitHub; committing a home address is a privacy leak | `settings.yml` ships a placeholder; local file is deep-merged over it |
+| 2026-08-24 | Personal values in gitignored `*.local.yml` overrides | Repo is public; home coordinates, height, inseam and budget are all personal | Tracked `settings.yml` and `profiles/gravel.yml` are examples; local files deep-merge over them; tests pin `use_local=False` so CI is deterministic |
 | 2026-08-24 | Report written to one stable path, overwritten each run | A per-run filename cannot be bookmarked and accumulates copies of a view only interesting in its latest state | `reports/<profile>_latest.html`; dated archives opt-in via `report.keep_dated_copies` |
 | 2026-08-24 | Distance scored, never filtered | Owner prefers Poznan +100 km but wants exceptional offers elsewhere to surface | Uses lat/lon OLX returns per offer - no geocoding needed |
 | 2026-08-24 | Seller type removed from scoring | Owner wants shops and outlets to compete equally | `private_seller` bonus dropped |
@@ -127,7 +128,7 @@ trekking 1653, city 1650, electric 1649, folding 4243, kids 1681, all bikes 461.
 | Date | Change | Notes |
 |---|---|---|
 | 2026-08-24 | MVP built and verified against live OLX | 212 offers found, dedup and price-change detection confirmed |
-| 2026-08-24 | v0.2: value-based scoring, geometry sizing, travel distance | Profile tuned to owner: 184 cm rider, Poznan, ~3000 PLN sweet spot. 49 tests |
+| 2026-08-24 | v0.2: value-based scoring, geometry sizing, travel distance | Profile tuned to the owner via a gitignored local override. 49 tests |
 
 ## Context Recovery
 

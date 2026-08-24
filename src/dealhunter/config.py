@@ -60,17 +60,38 @@ def load_settings(path: str | Path | None = None) -> dict[str, Any]:
     return settings
 
 
-def load_profile(name: str) -> dict[str, Any]:
+def load_profile(name: str, use_local: bool = True) -> dict[str, Any]:
+    """Load a profile, then overlay its gitignored `<name>.local.yml` sibling.
+
+    A profile encodes personal things - your body measurements, your budget, the
+    city you shop in - so the tracked file is a generic example and the real
+    values stay on this machine, exactly like settings.local.yml.
+    """
     path = Path(name)
     if not path.suffix:
         path = ROOT / "config" / "profiles" / f"{name}.yml"
     profile = _load(path)
+
+    # Tests pass use_local=False: a suite whose expectations depend on a
+    # gitignored personal file passes here and fails in CI, or vice versa.
+    local = path.with_name(f"{path.stem}.local.yml")
+    if use_local and local.exists():
+        with local.open(encoding="utf-8") as fh:
+            profile = _deep_merge(profile, yaml.safe_load(fh) or {})
+
     profile.setdefault("name", path.stem)
     return profile
 
 
+def list_profiles_with_overrides() -> list[tuple[str, bool]]:
+    directory = ROOT / "config" / "profiles"
+    return [(p.stem, (directory / f"{p.stem}.local.yml").exists())
+            for p in sorted(directory.glob("*.yml")) if not p.stem.endswith(".local")]
+
+
 def list_profiles() -> list[str]:
-    return sorted(p.stem for p in (ROOT / "config" / "profiles").glob("*.yml"))
+    return sorted(p.stem for p in (ROOT / "config" / "profiles").glob("*.yml")
+                  if not p.stem.endswith(".local"))
 
 
 def resolve(path: str | Path) -> Path:

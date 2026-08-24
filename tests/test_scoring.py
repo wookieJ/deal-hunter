@@ -11,7 +11,9 @@ from dealhunter.normalize.bikes import BikeNormalizer
 from dealhunter.scoring.bikes import BikeScorer, haversine_km
 
 SETTINGS = config.load_settings()
-PROFILE = config.load_profile("gravel")
+PROFILE = config.load_profile("gravel", use_local=False)   # never the personal override
+BUDGET = PROFILE["preferences"]["budget"]
+AREA = PROFILE["search"]["olx"]["area"]
 pipeline.prepare(PROFILE, SETTINGS)      # resolves the proximity anchor, as a run does
 POZNAN = (52.4064, 16.9252)
 WARSAW = (52.2297, 21.0122)
@@ -20,7 +22,8 @@ WARSAW = (52.2297, 21.0122)
 TEST_HOME = {"name": "dom", "lat": 51.7500, "lon": 17.5000}
 
 
-def score_of(title, desc="", price=3000, lat=POZNAN[0], lon=POZNAN[1], **kw):
+def score_of(title, desc="", price=None, lat=AREA["lat"], lon=AREA["lon"], **kw):
+    price = BUDGET["target"] if price is None else price
     raw = RawListing(source="olx", external_id="1", url="u", title=title,
                      description=desc, price=price, lat=lat, lon=lon, **kw)
     attrs = BikeNormalizer().normalize(raw)
@@ -32,24 +35,26 @@ class TestPriceDominatesSpec(unittest.TestCase):
 
     def test_expensive_better_spec_loses_to_sensible_cheap(self):
         cheap = score_of("Merida Silex 400 rozmiar L, Shimano 105, hamulce hydrauliczne "
-                         "tarczowe, widelec karbonowy", price=3000)
+                         "tarczowe, widelec karbonowy", price=BUDGET["target"])
         pricey = score_of("Merida Silex 700 rozmiar L, Shimano GRX 810, hamulce hydrauliczne "
-                          "tarczowe, widelec karbonowy, tubeless", price=5000)
+                          "tarczowe, widelec karbonowy, tubeless", price=BUDGET["hard_max"] - 200)
         self.assertGreater(cheap.value, pricey.value,
                            f"cheap={cheap.value} pricey={pricey.value}")
 
     def test_expensive_bike_still_appears_rather_than_being_hidden(self):
         pricey = score_of("Merida Silex 700 rozmiar L, Shimano GRX 810, hydrauliczne, "
-                          "widelec karbonowy, osie przelotowe, tubeless", price=5000)
+                          "widelec karbonowy, osie przelotowe, tubeless",
+                          price=BUDGET["hard_max"] - 200)
         self.assertFalse(pricey.disqualified)
         self.assertGreater(pricey.value, 45)
 
     def test_target_price_beats_soft_max_all_else_equal(self):
         same = "Merida Silex 400 rozmiar L Shimano GRX 400 hydrauliczne"
-        self.assertGreater(score_of(same, price=3000).value, score_of(same, price=4000).value)
+        self.assertGreater(score_of(same, price=BUDGET["target"]).value,
+                           score_of(same, price=BUDGET["soft_max"]).value)
 
     def test_above_hard_max_is_rejected(self):
-        s = score_of("Merida Silex 700 rozmiar L GRX 810", price=6200)
+        s = score_of("Merida Silex 700 rozmiar L GRX 810", price=BUDGET["hard_max"] + 500)
         self.assertTrue(s.disqualified)
 
 
@@ -88,13 +93,12 @@ class TestGeometrySizing(unittest.TestCase):
 class TestLocation(unittest.TestCase):
     def test_local_offer_outranks_a_distant_identical_one(self):
         title = "Merida Silex 400 rozmiar L 2019 GRX 400 hydrauliczne"
-        near = score_of(title, price=3000, lat=POZNAN[0], lon=POZNAN[1])
-        far = score_of(title, price=3000, lat=49.62, lon=22.68)   # Bieszczady
+        near = score_of(title, lat=AREA["lat"], lon=AREA["lon"])
+        far = score_of(title, lat=49.62, lon=22.68)               # Bieszczady
         self.assertGreater(near.value, far.value)
 
     def test_distant_offer_is_never_rejected(self):
-        s = score_of("Merida Silex 400 rozmiar L 2019 GRX 400", price=3000,
-                     lat=49.62, lon=22.68)
+        s = score_of("Merida Silex 400 rozmiar L 2019 GRX 400", lat=49.62, lon=22.68)
         self.assertFalse(s.disqualified)
 
     def test_haversine_sanity(self):
@@ -107,7 +111,7 @@ class TestSearchAreaVersusHome(unittest.TestCase):
     things - you can hunt in another city."""
 
     def _profile(self, proximity_to, area, home):
-        profile = config.load_profile("gravel")
+        profile = config.load_profile("gravel", use_local=False)
         profile["search"]["olx"]["area"] = area
         profile["preferences"]["location"]["proximity_to"] = proximity_to
         pipeline.prepare(profile, {"home": home})
@@ -140,13 +144,13 @@ class TestSearchAreaVersusHome(unittest.TestCase):
         def at(lat, lon):
             raw = RawListing(source="olx", external_id="1", url="u",
                              title="Merida Silex 400 rozmiar L 2019 GRX 400",
-                             description="", price=3000, lat=lat, lon=lon)
+                             description="", price=BUDGET["target"], lat=lat, lon=lon)
             return scorer.score(norm.normalize(raw), raw, profile).value
 
         self.assertGreater(at(50.0647, 19.9450), at(TEST_HOME["lat"], TEST_HOME["lon"]))
 
     def test_missing_area_and_home_is_handled(self):
-        profile = config.load_profile("gravel")
+        profile = config.load_profile("gravel", use_local=False)
         profile["search"]["olx"].pop("area", None)
         pipeline.prepare(profile, {})
         self.assertEqual(profile["preferences"]["location"]["anchor"], {})
@@ -179,7 +183,7 @@ class TestExplainability(unittest.TestCase):
         self.assertTrue(0 <= s.value <= 100)
 
     def test_budget_multiplier_is_shown(self):
-        s = score_of("Merida Silex 400 rozmiar L 2019 GRX 400", price=5000)
+        s = score_of("Merida Silex 400 rozmiar L 2019 GRX 400", price=BUDGET["hard_max"] - 200)
         self.assertTrue(any(r.startswith("x0.") for r in s.reasons))
 
 

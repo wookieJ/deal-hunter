@@ -36,8 +36,13 @@ router, not a knowledge dump.
 - **Search area and home are different things.** The search area is a profile search
   parameter (where to hunt); home is a setting (where the user lives) and drives only
   the report's travel distances. Never merge them back into one field.
-- **Never commit a home address.** Personal values belong in the gitignored
-  `config/settings.local.yml`; `config/settings.yml` keeps a placeholder.
+- **Never commit personal values.** Home coordinates, body measurements (height,
+  inseam) and budget belong in the gitignored `config/settings.local.yml` and
+  `config/profiles/<name>.local.yml`. The tracked files are examples with
+  placeholders. This includes test fixtures - a real address once leaked into
+  `tests/test_scoring.py`, which git tracks.
+- **Tests must load profiles with `use_local=False`.** Expectations that depend on a
+  gitignored personal file pass on one machine and fail in CI.
 - **Every stored score carries a profile fingerprint.** Anything that changes how
   scores are produced must be inside `config.profile_fingerprint`'s input, or stale
   scores will survive a profile change and pollute the ranking.

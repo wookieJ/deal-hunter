@@ -21,11 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Search area as a first-class search parameter** (`search.<source>.area`), applied
   to OLX as a city + radius filter. Besides narrowing the hunt, it pushes back the
-  1000-result cap: Poznan +100 km returns ~760 offers instead of 1000 truncated from
+  1000-result cap: a city +100 km returns ~760 offers instead of 1000 truncated from
   the whole country.
-- **`config/settings.local.yml`**, gitignored, overlaid on top of `settings.yml`. Home
-  addresses are personal and must never reach a public repository, so the tracked file
-  carries only a placeholder.
+- **Gitignored local overrides for both settings and profiles**
+  (`config/settings.local.yml`, `config/profiles/<name>.local.yml`), deep-merged over
+  the tracked files. Home coordinates, body measurements and budget are personal and
+  must never reach a public repository, so the committed files are examples with
+  placeholder numbers and a clone still runs out of the box.
+- `load_profile(..., use_local=False)`, used by the test suite: expectations that
+  depend on a gitignored personal file pass locally and fail in CI.
 - `proximity_to` setting choosing whether the proximity score measures distance from
   the search area or from home.
 - `report.keep_dated_copies` setting (default `false`) for keeping a timestamped

@@ -1,16 +1,26 @@
 # What a good deal means. Pure data - tune here, never in Python.
-# Built for: first proper gravel bike, recreational + training + long rides,
-# 184 cm rider based in Poznan, best value around 3000 PLN.
+#
+# THIS FILE IS AN EXAMPLE and is committed to the repository. The numbers below
+# are placeholders. Your body measurements, budget and city are personal, so put
+# them in config/profiles/gravel.local.yml, which is gitignored and deep-merged
+# over this file. You only need to override the keys you want to change:
+#
+#   preferences:
+#     rider:  { height_cm: 000, inseam_cm: 00 }
+#     budget: { target: 0000, comfortable_max: 0000, soft_max: 0000, hard_max: 0000 }
+#   search:
+#     olx:
+#       area: { name: YourCity, city_id: 00000, lat: 00.0, lon: 00.0, radius_km: 100 }
 name: gravel
 category: bikes
-description: First gravel bike, 184 cm rider near Poznan, value-focused around 3000 PLN
+description: Example gravel profile - copy the personal bits into gravel.local.yml
 
 search:
   olx:
     category_id: 4242        # OLX "Rowery gravel". Other ids in sources/olx.py
     queries: ["", "gravel"]
     price_from: 1200
-    price_to: 5500           # matches hard_max - no point fetching what we reject
+    price_to: 6500           # matches hard_max - no point fetching what we reject
     max_pages: 5
     sort_by: created_at:desc
 
@@ -19,26 +29,26 @@ search:
     # ~760 offers instead of 1000 truncated from the whole country.
     # OLX accepts distances of 0, 2, 5, 10, 15, 30, 50, 75, 100 km.
     area:
-      name: Poznan
-      city_id: 13983
-      lat: 52.4064
-      lon: 16.9252
+      name: Warszawa          # example - override in gravel.local.yml
+      city_id: 17871
+      lat: 52.2297
+      lon: 21.0122
       radius_km: 100
 
 preferences:
   rider:
-    height_cm: 184
-    inseam_cm: 86
+    height_cm: 178          # example - override in gravel.local.yml
+    inseam_cm: 82           # example - override in gravel.local.yml
 
   # Budget is applied as a MULTIPLIER on the spec score, not as one weighted
   # dimension among many. That is what stops a 5000 PLN bike from winning purely
   # on a better groupset: it keeps only ~75% of its score, so it has to be
-  # genuinely exceptional to beat a good 3000-3500 PLN bike.
+  # genuinely exceptional to beat a good bike at the comfortable price.
   budget:
-    target: 3000             # the sweet spot
-    comfortable_max: 3500    # at or below this: no penalty at all
-    soft_max: 4000           # worth it only if clearly better
-    hard_max: 5500           # above this: rejected outright
+    target: 4000             # the sweet spot          (example)
+    comfortable_max: 4500    # at or below this: no penalty at all
+    soft_max: 5000           # worth it only if clearly better
+    hard_max: 6500           # above this: rejected outright
     expensive_floor: 0.68    # score multiplier at hard_max
 
   location:
@@ -55,7 +65,7 @@ preferences:
   # because nominal sizes are not comparable across brands. The label-based
   # numbers below are only a fallback and are deliberately capped.
   frame_size:
-    ideal_reach_mm: [402, 426]        # derived for 184 cm / 86 cm inseam
+    ideal_reach_mm: [395, 420]        # derive these from your own height/inseam
     acceptable_reach_mm: [390, 438]
     comfort_stack_mm: 600             # recreational riding: taller is better
     reject_reach_below: 370

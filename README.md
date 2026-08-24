@@ -96,10 +96,18 @@ This tool deals with two different places, and conflating them produces nonsense
 hunting around another city rewards offers *there*, while the report still tells
 you how far each one is from your own door.
 
-**Your home address is personal.** It lives in `config/settings.local.yml`, which
-is gitignored; the committed `config/settings.yml` carries only a placeholder. Copy
-the block from its comments, fill in your coordinates, and it overrides the tracked
-values without ever reaching the repository.
+**Personal values never reach the repository.** Two gitignored files override the
+tracked ones, and you only put in them the keys you want to change:
+
+| File | Holds |
+|---|---|
+| `config/settings.local.yml` | Your home coordinates |
+| `config/profiles/<name>.local.yml` | Your body measurements, budget and city |
+
+The committed `config/settings.yml` and `config/profiles/gravel.yml` are examples
+with placeholder numbers, so cloning and running works immediately — and your
+height, inseam, budget and address stay on your machine. Each file's comments show
+the block to copy.
 
 ## The scoring model
 
@@ -107,11 +115,11 @@ values without ever reaching the repository.
 final = spec_score  x  budget_fit  +  bargain_bonus
 ```
 
-**Why multiplicative, not a flat weighted sum.** In a flat sum, a 5000 PLN bike
+**Why multiplicative, not a flat weighted sum.** In a flat sum, an expensive bike
 with a better groupset simply outscores a sensibly priced one — which is the exact
 opposite of what a deal hunter should do. Making budget fit a *multiplier* means a
 bike at 5000 PLN keeps only ~75% of its spec score, so it has to be genuinely
-exceptional to beat a good 3000 PLN bike, while still showing up if it really is.
+exceptional to beat a well-priced one, while still showing up if it really is.
 
 **Sizing uses real geometry, not the size label.** Nominal sizes are not
 comparable across brands, or even across generations of the same model:
@@ -139,10 +147,13 @@ Everything about *what you want* lives in a YAML profile. No Python required:
 ```yaml
 preferences:
   budget:
-    target: 3000            # the sweet spot
-    comfortable_max: 3500   # no penalty at or below this
-    soft_max: 4000          # worth it only if clearly better
-    hard_max: 5500          # above this: rejected
+    target: 4000            # the sweet spot
+    comfortable_max: 4500   # no penalty at or below this
+    soft_max: 5000          # worth it only if clearly better
+    hard_max: 6500          # above this: rejected
+  rider:
+    height_cm: 178                # yours goes in gravel.local.yml, not here
+    inseam_cm: 82
   location:
     proximity_to: search_area     # or "home" - what proximity is measured against
     preferred_radius_km: 100      # scored, never a hard filter

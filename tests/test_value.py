@@ -51,7 +51,7 @@ class TestProfileFingerprint(unittest.TestCase):
     def setUp(self):
         from dealhunter import config
         self.config = config
-        self.profile = config.load_profile("gravel")
+        self.profile = config.load_profile("gravel", use_local=False)
 
     def test_same_profile_gives_same_fingerprint(self):
         self.assertEqual(self.config.profile_fingerprint(self.profile),
