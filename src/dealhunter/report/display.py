@@ -24,7 +24,7 @@ def _pick(entry: dict[str, Any], attrs: dict[str, Any]) -> str:
     return entry.get("fallback", "")
 
 
-def annotate(rows: list[dict[str, Any]], domain: str) -> None:
+def annotate(rows: list[dict[str, Any]], domain: str | None) -> None:
     spec = (domains.load(domain).get("display") or {})
     summary = spec.get("summary") or []
     chips = spec.get("chips") or []

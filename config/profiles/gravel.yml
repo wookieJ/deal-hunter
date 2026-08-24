@@ -1,104 +1,61 @@
-# What a good deal means. Pure data - tune here, never in Python.
-#
-# THIS FILE IS AN EXAMPLE and is committed to the repository. The numbers below
-# are placeholders. Your body measurements, budget and city are personal, so put
-# them in config/profiles/gravel.local.yml, which is gitignored and deep-merged
-# over this file. You only need to override the keys you want to change:
-#
-#   preferences:
-#     frame_size: { ideal_reach_mm: [000, 000] }   # derived from your height/inseam
-#     budget: { target: 0000, comfortable_max: 0000, soft_max: 0000, hard_max: 0000 }
-#   search:
-#     olx:
-#       area: { name: YourCity, city_id: 00000, lat: 00.0, lon: 00.0, radius_km: 100 }
+# Every search file has this shape. Nothing here is specific to a product type:
+# the generic fields are the same for a bike, a laptop or a car, and everything
+# you want to say about *this* product goes into `scoring.rules` as text patterns.
 name: gravel
+source: olx
+
+# Optional. A domain pack adds structured extraction and richer report columns.
+# Delete this line and the search still works - it just scores on price,
+# location, condition and the rules below.
 domain: bikes
-description: Example gravel profile - copy the personal bits into gravel.local.yml
 
 search:
-  olx:
-    category_id: 4242        # OLX "Rowery gravel". Other ids in sources/olx.py
-    queries: ["", "gravel"]
-    price_from: 1200
-    price_to: 6500           # matches hard_max - no point fetching what we reject
-    max_pages: 5
-    sort_by: created_at:desc
+  category_id: 4242              # see `deal categories` for the ids
+  queries: ['', 'gravel']
+  price: { from: 1200, to: 6500 }
+  max_pages: 5
+  sort_by: created_at:desc
+  area:
+    name: Warszawa
+    city_id: 17871
+    lat: 52.2297
+    lon: 21.0122
+    radius_km: 100
 
-    # WHERE TO HUNT. This is a search parameter, not your address - you can hunt
-    # anywhere. It also pushes back OLX's 1000-result cap: a city +100 km returns
-    # ~760 offers instead of 1000 truncated from the whole country.
-    # OLX accepts distances of 0, 2, 5, 10, 15, 30, 50, 75, 100 km.
-    area:
-      name: Warszawa          # example - override in gravel.local.yml
-      city_id: 17871
-      lat: 52.2297
-      lon: 21.0122
-      radius_km: 100
+# Budget is a multiplier on the whole score, not one criterion among many, so a
+# pricey item has to be clearly better to beat a well-priced one.
+budget:
+  target: 4000
+  comfortable_max: 4500
+  soft_max: 5000
+  hard_max: 6500
+  expensive_floor: 0.68
 
-preferences:
+scoring:
+  weights:
+    location: 10
+    condition: 12
 
-  # Budget is applied as a MULTIPLIER on the spec score, not as one weighted
-  # dimension among many. That is what stops a 5000 PLN bike from winning purely
-  # on a better groupset: it keeps only ~75% of its score, so it has to be
-  # genuinely exceptional to beat a good bike at the comfortable price.
-  budget:
-    target: 4000             # the sweet spot          (example)
-    comfortable_max: 4500    # at or below this: no penalty at all
-    soft_max: 5000           # worth it only if clearly better
-    hard_max: 6500           # above this: rejected outright
-    expensive_floor: 0.68    # score multiplier at hard_max
-
-  location:
-    # What the proximity score measures against:
-    #   search_area - the hunting ground defined in `search.olx.area` (default)
-    #   home        - where you live, from config/settings.local.yml
-    # Your home address is NOT here on purpose: it is personal, it lives in
-    # settings.local.yml, and it is used for the report's travel distances.
-    proximity_to: search_area
-    preferred_radius_km: 100   # scored, never a hard filter - a great offer
-                               # elsewhere in Poland should still surface
-
-  # Sizing is scored on real geometry when the model is in config/geometry.yml,
-  # because nominal sizes are not comparable across brands. The label-based
-  # numbers below are only a fallback and are deliberately capped.
-  frame_size:
-    ideal_reach_mm: [395, 420]        # derive these from your own height/inseam
-    acceptable_reach_mm: [390, 438]
-    comfort_stack_mm: 600             # recreational riding: taller is better
-    reject_reach_below: 370
-    reject_reach_above: 455
-
-    label_confidence_cap: 0.85        # a size label can never score full marks
-    preferred_cm: [56, 57, 58]
-    acceptable_cm: [54, 55, 59, 60]
-    preferred_letter: ["L", "M/L"]
-    acceptable_letter: ["M", "XL"]    # M really can be right, depending on brand
-    reject_cm_below: 48               # only obviously wrong sizes are rejected;
-    reject_cm_above: 63               # anything arguable is scored down instead
-    reject_letters: ["XS", "S", "XXL"]
-
-  brands:
-    preferred: [merida, cube, giant, trek, canyon, specialized, cannondale, kross,
-                orbea, marin, fuji, romet, kellys, rondo, bergamont, focus, ktm]
-    avoid: []
-
-  preferred_groupsets: [grx]          # preferred, never required
-  preferred_models: [silex]           # comfortable geometry reference
-
-  required: []
-  disqualifying: [parts_only, frame_damage, kids_bike, ebike, wrong_category,
-                  flatbar, fitness_bike]   # flat-bar hybrids are a different bike
-
-# Spec score dimensions. Seller type is intentionally absent: shops are welcome
-# and the bike matters far more than who is selling it.
-weights:
-  size: 32
-  groupset: 22
-  features: 16
-  condition: 12
-  location: 10
-  brand: 8
-
-bonuses:
-  preferred_model: 4
-  fresh_listing: 2
+  # Text rules: patterns are regexes, matched against title, description and the
+  # marketplace's own fields. Negation is handled, so "bez pekniec" does not fire
+  # a damage rule. `scope: title` narrows a rule to the title.
+  rules:
+    - name: parts only
+      any: ['na\s*cz[eę][sś]ci', 'sama\s*rama', 'tylko\s*rama']
+      reject: true
+    - name: frame damage
+      any: ['p[eę]kni[eę]t\w*\s*ram\w*', 'z[lł]amana\s*rama']
+      reject: true
+    - name: electric
+      any: ['elektryczn\w*', '\be-?bike\b', 'wspomagani\w*']
+      reject: true
+    - name: flat bar conversion
+      any: ['flat\s*bar', 'flatbar', 'prosta\s*kierownic\w*']
+      reject: true
+    - name: fitness hybrid
+      any: ['\bfitness\b']
+      scope: title
+      reject: true
+    - name: wanted ad, not for sale
+      any: ['\bkupi[eę]\b', '\bposzukuj[eę]\b', '\bszukam\b', '\bzamieni[eę]\b']
+      reject: true

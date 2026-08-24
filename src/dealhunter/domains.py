@@ -59,8 +59,15 @@ def register_dimension(domain: str, name: str) -> Callable:
 
 
 @lru_cache(maxsize=8)
-def load(name: str) -> dict[str, Any]:
-    """Load a domain pack: its YAML rules, plus hooks.py if it has one."""
+def load(name: str | None) -> dict[str, Any]:
+    """Load a domain pack: its YAML rules, plus hooks.py if it has one.
+
+    A domain is optional. A search that declares none still works: it scores on
+    price, location, condition and its own text rules, which is all most searches
+    need. A pack only adds structured extraction and richer display on top.
+    """
+    if not name:
+        return {}
     path = root(name) / "domain.yml"
     if not path.exists():
         known = ", ".join(available()) or "none"

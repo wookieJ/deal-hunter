@@ -16,6 +16,6 @@ class Scorer(Protocol):
     def score(self, attrs: Attributes, raw: RawListing, profile: dict[str, Any]) -> ScoreResult: ...
 
 
-def get_scorer(domain: str) -> Scorer:
+def get_scorer(domain: str | None) -> Scorer:
     from .engine import Engine
     return Engine(domain)

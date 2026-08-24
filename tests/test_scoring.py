@@ -13,9 +13,9 @@ from dealhunter.scoring.engine import haversine_km
 
 SETTINGS = config.load_settings()
 PROFILE = config.load_profile("gravel", use_local=False)   # never the personal override
+pipeline.prepare(PROFILE, SETTINGS)      # normalises the file, as a run does
 BUDGET = PROFILE["preferences"]["budget"]
-AREA = PROFILE["search"]["olx"]["area"]
-pipeline.prepare(PROFILE, SETTINGS)      # resolves the proximity anchor, as a run does
+AREA = PROFILE["search"]["area"]
 # Two arbitrary points ~280 km apart, used only to sanity-check the distance maths.
 CITY_A = (52.4064, 16.9252)
 CITY_B = (52.2297, 21.0122)
@@ -120,8 +120,7 @@ class TestSearchAreaVersusHome(unittest.TestCase):
 
     def _profile(self, proximity_to, area, home):
         profile = config.load_profile("gravel", use_local=False)
-        profile["search"]["olx"]["area"] = area
-        profile["preferences"]["location"]["proximity_to"] = proximity_to
+        profile["search"]["area"] = {**area, "proximity_to": proximity_to}
         pipeline.prepare(profile, {"home": home})
         return profile
 
@@ -159,7 +158,7 @@ class TestSearchAreaVersusHome(unittest.TestCase):
 
     def test_missing_area_and_home_is_handled(self):
         profile = config.load_profile("gravel", use_local=False)
-        profile["search"]["olx"].pop("area", None)
+        profile["search"].pop("area", None)
         pipeline.prepare(profile, {})
         self.assertEqual(profile["preferences"]["location"]["anchor"], {})
 

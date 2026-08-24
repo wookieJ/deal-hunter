@@ -29,6 +29,35 @@ from ..models import Attributes, RawListing, ScoreResult
 
 EARTH_RADIUS_KM = 6371.0
 
+# How much the text rules count for when a profile does not say. Enough to matter
+# on their own for a search with no domain pack, without drowning out a pack's
+# structured dimensions when one is present.
+DEFAULT_RULES_WEIGHT = 40
+
+# Sellers advertise the absence of defects far more often than their presence, so
+# every rule needs this guard. It belongs to the engine, not to a domain pack: a
+# search with no pack was silently losing it and penalising "brak martwych
+# pikseli" as if the listing had admitted to dead pixels.
+DEFAULT_NEGATION = (
+    r"(?:\bbez\b|\bbrak\w*\b|\bnie\s+ma\b|\bnie\b|\b[zż]adn\w*\b|\bwolny\s+od\b)"
+    r"[^.!?;]{0,40}$"
+)
+
+# Dimensions every marketplace offer supports, whatever is being sold. A domain
+# pack may override or extend them, but a search needs no pack to use them.
+UNIVERSAL_DIMENSIONS: dict[str, dict[str, Any]] = {
+    "location": {"type": "distance", "far_score": 0.4,
+                 "bands": [[1.0, 1.0, "inside search area"], [2.0, 0.75, ""],
+                           [3.5, 0.55, "far"]]},
+    "condition": {"type": "enum_map", "attr": "condition", "label": "condition",
+                  "default_score": 0.65,
+                  # The marketplace reports condition in Polish; translate for display.
+                  "scores": {"nowe": 1.0, "jak nowe": 0.95, "odnowione": 0.85,
+                             "używane": 0.75, "uzywane": 0.75, "uszkodzone": 0.15},
+                  "labels": {"nowe": "new", "jak nowe": "as new", "odnowione": "refurbished",
+                             "używane": "used", "uzywane": "used", "uszkodzone": "damaged"}},
+}
+
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     p1, p2 = math.radians(lat1), math.radians(lat2)
@@ -47,28 +76,41 @@ class Result:
 
 
 class Engine:
-    def __init__(self, domain: str):
+    def __init__(self, domain: str | None):
         self.domain = domain
         self.spec = domains.load(domain)
         self.category = self.spec.get("name", domain)
-        self._negation = re.compile(self.spec["negation"]) if self.spec.get("negation") else None
+        self._negation = re.compile(self.spec.get("negation") or DEFAULT_NEGATION)
 
     # ------------------------------------------------------------------ public
     def score(self, attrs: Attributes, raw: RawListing, profile: dict[str, Any]) -> ScoreResult:
+        scoring = profile.get("scoring") or {}
         prefs = profile.get("preferences", {})
-        weights = profile.get("weights", {})
-        bonuses = profile.get("bonuses", {})
-        dimensions = {**(self.spec.get("dimensions") or {}),
-                      **(profile.get("dimensions") or {})}
+        weights = scoring.get("weights") or profile.get("weights") or {}
+        bonuses = scoring.get("bonuses") or profile.get("bonuses") or {}
+        dimensions = {**UNIVERSAL_DIMENSIONS,
+                      **(self.spec.get("dimensions") or {}),
+                      **(scoring.get("dimensions") or {})}
 
-        rule_points, rule_reasons, rule_block = self._keyword_rules(raw, prefs)
+        rule_points, rule_max, rule_penalty, rule_reasons, rule_block = \
+            self._keyword_rules(raw, prefs)
         blocked = rule_block or self._disqualify(attrs, raw, prefs)
         if blocked:
             return ScoreResult(0, f"Rejected: {blocked}", [f"DISQUALIFIED: {blocked}"],
                                disqualified=True, disqualified_by=blocked)
 
         results: list[tuple[str, float, Result]] = []
+        # Text rules compose as one dimension rather than adding points on top of
+        # everything else. Stacking them was double counting: with a domain pack
+        # the same fact was scored twice, and enough matches pushed any offer to 100.
+        if rule_max > 0:
+            share = max(0.0, min(1.0, rule_points / rule_max))
+            results.append(("rules", float(weights.get("rules", DEFAULT_RULES_WEIGHT)),
+                            Result(share, f"rules {rule_points:+.0f}/{rule_max:.0f}")))
+
         for name, weight in weights.items():
+            if name == "rules":
+                continue
             config_for = dimensions.get(name)
             if not config_for or not weight:
                 continue
@@ -107,7 +149,9 @@ class Engine:
 
         extra, extra_reasons = self._extras(attrs, raw, prefs, bonuses)
         reasons.extend(extra_reasons)
-        extra += rule_points
+        # Positive rules build a dimension; negative ones subtract directly, because
+        # a share clamped at zero cannot express "this listing mentions a defect".
+        extra += rule_penalty
         reasons.extend(rule_reasons)
 
         value = max(0, min(100, round(spec_score * budget_fit + extra)))
@@ -295,11 +339,12 @@ class Engine:
         """True only where the pattern appears somewhere that is not negated."""
         for m in re.finditer(pattern, haystack, re.IGNORECASE):
             window = haystack[max(0, m.start() - 45):m.start()]
-            if not self._negation or not self._negation.search(window):
+            if not self._negation.search(window):
                 return True
         return False
 
-    def _keyword_rules(self, raw: RawListing, prefs: dict) -> tuple[float, list[str], str]:
+    def _keyword_rules(self, raw: RawListing,
+                       prefs: dict) -> tuple[float, float, float, list[str], str]:
         """Plain "if these words appear, move the score" rules.
 
         The declarative dimensions are worth the ceremony for numbers and tiers,
@@ -308,10 +353,15 @@ class Engine:
         are that, and they can live in a domain pack or in a single profile - so
         a one-off search can add its own without touching the domain.
         """
-        total, reasons, blocked = 0.0, [], ""
-        rules = list(self.spec.get("rules") or []) + list(prefs.get("rules") or [])
+        total, possible, penalty, reasons, blocked = 0.0, 0.0, 0.0, [], ""
+        rules = (list(self.spec.get("rules") or [])
+                 + list((prefs.get("scoring") or {}).get("rules") or [])
+                 + list(prefs.get("rules") or []))
 
         for rule in rules:
+            points = float(rule.get("points", 0))
+            if points > 0:
+                possible += points
             scope = rule.get("scope", "all")
             haystack = {"title": raw.title, "description": raw.description}.get(scope, raw.text)
             patterns = rule.get("any") or ([rule["match"]] if rule.get("match") else [])
@@ -325,11 +375,13 @@ class Engine:
             if rule.get("reject"):
                 blocked = blocked or rule.get("note") or rule.get("name", "rejected by rule")
                 continue
-            points = float(rule.get("points", 0))
-            if points:
+            if points > 0:
                 total += points
+            elif points < 0:
+                penalty += points
+            if points:
                 reasons.append(f"{points:+.0f} {rule.get('note') or rule.get('name', 'keyword match')}")
-        return total, reasons, blocked
+        return total, possible, penalty, reasons, blocked
 
     # ------------------------------------------------------------ hard gates
     def _disqualify(self, attrs: Attributes, raw: RawListing, prefs: dict) -> str:

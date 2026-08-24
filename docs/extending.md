@@ -1,70 +1,65 @@
 # Extending Deal Hunter
 
-The engine knows nothing about any product. What a product *is* - how to read its
-specs out of a listing, what makes one offer better than another - lives in a
-**domain pack**. Adding a new kind of product is a directory of YAML; adding a new
-search is a single YAML file.
-
-```
-domains/<name>/
-    domain.yml          extraction rules, scoring dimensions, value model
-    lookups/*.yml       reference tables: model generation -> real specs
-    hooks.py            optional, only for what YAML cannot express
-```
-
-## Add a new search (no code, no new domain)
-
-Copy `config/profiles/gravel.yml`, point it at another category and adjust the
-preferences. `config/profiles/mtb.yml` is exactly that: a second search over the
-same `bikes` domain, written without a line of Python.
+Every search is one YAML file with the same shape, whatever you are buying:
 
 ```yaml
-name: mtb
-domain: bikes
-search:
-  olx:
-    category_id: 1651
-    area: { name: Warszawa, city_id: 17871, lat: 52.2297, lon: 21.0122, radius_km: 100 }
-preferences: { ... }
-weights:     { size: 28, groupset: 24, features: 18, condition: 12, location: 10, brand: 8 }
+name: <search name>
+source: olx
+domain: <optional pack>
+
+search:   { category_id:, queries:, price: {from:, to:}, max_pages:, sort_by:, area: {...} }
+budget:   { target:, comfortable_max:, soft_max:, hard_max: }
+scoring:  { weights: {...}, rules: [...] }
 ```
 
-Then `deal run -p mtb`. It gets its own tab in the report.
+No product-specific fields, so nothing has to be mapped per domain. Everything you
+want to say about what you are buying goes into `scoring.rules`.
 
-## The short path: keyword rules
+## Add a search
 
-Most of what you want to say about a new kind of product is not a numeric range —
-it is "mentioning this is good, mentioning that is not". That needs no extractor
-and no dimension, just a rule:
+Copy any file in `config/profiles/`, change the category and the rules. That is
+the whole procedure. `config/profiles/monitor.yml` declares no domain at all and
+works: price, location and condition are universal, and its rules do the rest.
+
+## Rules
 
 ```yaml
 rules:
-  - name: dedicated_gpu
-    any: ['nvidia', 'geforce', 'rtx', 'radeon rx']
-    points: 8
-    note: dedicated GPU mentioned
-  - name: overheating
-    any: ['przegrzewa', 'glosny wentylator']
-    points: -8
-    note: thermal complaints
-  - name: liquid_damage
-    any: ['zalan\w*']
+  - name: high refresh rate
+    any: ['\b(144|165|240)\s*hz\b']
+    points: 20
+  - name: dead pixels
+    any: ['martw\w*\s*piksel\w*']
+    points: -18
+  - name: broken
+    any: ['nie\s*dzia[lł]a']
     reject: true
-  - name: must_have_ssd
-    any: ['ssd', 'nvme']
+  - name: must have a receipt
+    any: ['paragon', 'faktur\w*']
     require: true          # absent -> rejected
 ```
 
-Entries in `any` are regexes, so `i7` works as-is and `zalan\w*` covers Polish
-inflection. `scope:` limits a rule to `title` or `description` (default: both,
-plus marketplace parameters). Negation is handled: "nie zalany" does not fire the
-liquid-damage rule.
+- Entries in `any` are regexes, so `i7` works as-is and `zalan\w*` covers Polish
+  inflection.
+- `scope: title` narrows a rule to the title; the default also covers the
+  description and the marketplace's own fields.
+- Positive points build one weighted criterion (`weights.rules`, default 40).
+  Negative points subtract directly, so a mentioned defect always costs.
+- Negation is handled by the engine: *"brak martwych pikseli"* does not fire the
+  dead-pixel rule.
 
-Rules can live in a domain pack **or in a single profile** under
-`preferences.rules`, so a one-off search adds its own without touching the domain.
+## Add a marketplace
 
-Reach for the declarative dimensions below only when a rule is not enough —
-numeric ranges, quality tiers and reference-table lookups genuinely need them.
+Implement `search(spec)` and `parse(payload)` in `src/dealhunter/sources/<name>.py`
+and register it in `sources/base.py`. Expect bot protection to be the hard part,
+not parsing.
+
+## Optional: a domain pack
+
+Reach for one only when rules genuinely are not enough — numeric ranges, quality
+tiers, or a reference table mapping a model to its real specification. A pack is
+one YAML file, `domains/<name>/domain.yml`, that a search opts into with
+`domain: <name>`.
 
 ## Add a new product type
 

@@ -3,7 +3,7 @@
 These guard the promise that a new kind of product needs no code - including that
 a single profile can add its own rules without touching the domain pack.
 """
-import sys, unittest
+import re, sys, unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -13,19 +13,23 @@ from dealhunter.normalize.base import get_normalizer
 from dealhunter.scoring.base import get_scorer
 
 BASE_PROFILE = {
-    "domain": "laptops",
-    "preferences": {"budget": {"target": 2500, "comfortable_max": 3000,
-                               "soft_max": 3600, "hard_max": 4500}},
-    "weights": {"condition": 10},
-    "bonuses": {},
+    "name": "test", "source": "olx", "domain": "laptops",
+    "search": {"category_id": 1199},
+    "budget": {"target": 2500, "comfortable_max": 3000,
+               "soft_max": 3600, "hard_max": 4500},
+    "scoring": {"weights": {"condition": 10}, "rules": []},
 }
 
 
 def score(title="Laptop", desc="", price=2000, profile=None):
+    from copy import deepcopy
+    from dealhunter import config, pipeline
+    profile = deepcopy(profile or BASE_PROFILE)
+    pipeline.prepare(profile, config.load_settings())
     raw = RawListing(source="olx", external_id="1", url="u", title=title,
                      description=desc, price=price)
     attrs = get_normalizer("laptops").normalize(raw)
-    return get_scorer("laptops").score(attrs, raw, profile or BASE_PROFILE)
+    return get_scorer("laptops").score(attrs, raw, profile)
 
 
 class TestDomainKeywordRules(unittest.TestCase):
@@ -59,8 +63,9 @@ class TestProfileKeywordRules(unittest.TestCase):
     """A one-off search can add rules without touching the domain pack."""
 
     def _profile(self, rules):
-        profile = {k: v for k, v in BASE_PROFILE.items()}
-        profile["preferences"] = {**BASE_PROFILE["preferences"], "rules": rules}
+        from copy import deepcopy
+        profile = deepcopy(BASE_PROFILE)
+        profile["scoring"]["rules"] = rules
         return profile
 
     def test_profile_rule_adds_points(self):
@@ -105,20 +110,100 @@ class TestDomainIsolation(unittest.TestCase):
         self.assertIn("ssd", laptops)
         self.assertNotIn("ssd", bikes)
 
-    def test_engine_source_mentions_no_product_attributes(self):
-        """The engine must stay product-agnostic; product words belong in YAML."""
+    def test_engine_code_contains_no_product_vocabulary(self):
+        """The engine must stay product-agnostic.
+
+        Docstrings may name a bike or a laptop to explain a concept - that is
+        prose. Code may not: an identifier or a string literal that knows what a
+        groupset is has put product knowledge back into the engine.
+        """
+        import ast
+
+        # Whole words only: "stack" must not flag "haystack".
+        banned = re.compile(
+            r"\b(frame_size\w*|groupset\w*|cpu_tier|ram_gb|frame_material|"
+            r"geometry|reach|stack|brakes|wheel_size)\b")
         engine_dir = Path(__file__).resolve().parents[1] / "src" / "dealhunter"
-        banned = ("frame_size_cm", "groupset_tier", "cpu_tier", "ram_gb", "frame_material")
         offenders = []
-        for path in engine_dir.rglob("*.py"):
-            text = path.read_text(encoding="utf-8")
-            for word in banned:
-                # A docstring may mention one as an example; code must not use it.
-                for line in text.splitlines():
-                    if word in line and not line.strip().startswith("#") and '"""' not in line:
-                        offenders.append(f"{path.name}: {line.strip()[:60]}")
-        self.assertEqual(offenders, [], "product attributes leaked into the engine")
+
+        for path in sorted(engine_dir.rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            docstrings = set()
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef,
+                                     ast.AsyncFunctionDef)):
+                    body = getattr(node, "body", [])
+                    if body and isinstance(body[0], ast.Expr) and \
+                            isinstance(body[0].value, ast.Constant) and \
+                            isinstance(body[0].value.value, str):
+                        docstrings.add(id(body[0].value))
+
+            for node in ast.walk(tree):
+                text = None
+                if isinstance(node, ast.Constant) and isinstance(node.value, str) \
+                        and id(node) not in docstrings:
+                    text = node.value
+                elif isinstance(node, ast.Name):
+                    text = node.id
+                elif isinstance(node, ast.Attribute):
+                    text = node.attr
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    text = node.name
+                if not text:
+                    continue
+                if banned.search(text.lower()):
+                    offenders.append(f"{path.name}: {text[:60]!r}")
+
+        self.assertEqual(sorted(set(offenders)), [],
+                         "product vocabulary leaked into engine code")
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestNoDomainSearch(unittest.TestCase):
+    """A search with no domain pack must still behave sensibly - that is the mode
+    a brand new kind of product starts in."""
+
+    PROFILE = {
+        "name": "monitor", "source": "olx",
+        "search": {"category_id": 1201},
+        "budget": {"target": 900, "comfortable_max": 1200,
+                   "soft_max": 1600, "hard_max": 2500},
+        "scoring": {
+            "weights": {"rules": 55, "location": 25, "condition": 20},
+            "rules": [
+                {"name": "high refresh", "any": [r"\b(144|165|240)\s*hz\b"], "points": 20},
+                {"name": "dead pixels", "any": [r"martw\w*\s*piksel\w*"], "points": -18},
+                {"name": "broken", "any": [r"nie\s*dzia[lł]a"], "reject": True},
+            ]},
+    }
+
+    def _score(self, title="Monitor", desc="", price=800):
+        from copy import deepcopy
+        from dealhunter import config, pipeline
+        profile = deepcopy(self.PROFILE)
+        pipeline.prepare(profile, config.load_settings())
+        raw = RawListing(source="olx", external_id="1", url="u", title=title,
+                         description=desc, price=price, lat=52.2297, lon=21.0122)
+        attrs = get_normalizer(None).normalize(raw)
+        return get_scorer(None).score(attrs, raw, profile)
+
+    def test_scores_without_any_domain_pack(self):
+        result = self._score(desc="Monitor 165Hz, stan bardzo dobry")
+        self.assertFalse(result.disqualified)
+        self.assertGreater(result.value, 0)
+        self.assertTrue(any("high refresh" in r for r in result.reasons))
+
+    def test_reject_rule_still_applies(self):
+        self.assertTrue(self._score(desc="Monitor nie dziala").disqualified)
+
+    def test_negation_guard_applies_without_a_domain(self):
+        """The guard is the engine's, not a pack's. A search with no pack was
+        losing it and penalising 'brak martwych pikseli' as an admitted defect."""
+        clean = self._score(desc="Ekran sprawny, brak martwych pikseli")
+        faulty = self._score(desc="Ekran ma 2 martwe piksele w rogu")
+        self.assertFalse(any("dead pixels" in r for r in clean.reasons))
+        self.assertTrue(any("dead pixels" in r for r in faulty.reasons))
+        self.assertGreater(clean.value, faulty.value)

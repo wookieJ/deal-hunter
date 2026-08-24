@@ -103,7 +103,7 @@ def resolve(path: str | Path) -> Path:
 # Bump whenever the scorer's logic or the wording of its reasons changes. The
 # profile alone is not enough: translating the output left stored scores with
 # stale text, because the rules that produced them had not changed.
-SCORING_VERSION = 5
+SCORING_VERSION = 6
 
 
 def profile_fingerprint(profile: dict[str, Any]) -> str:
@@ -112,7 +112,7 @@ def profile_fingerprint(profile: dict[str, Any]) -> str:
     offers that fall out of the search window keep scores computed under rules
     that no longer apply - and quietly pollute the ranking with numbers that
     cannot be reproduced."""
-    relevant = {k: profile.get(k) for k in ("domain", "preferences", "weights", "bonuses", "dimensions")}
+    relevant = {k: profile.get(k) for k in ("domain", "budget", "scoring", "preferences")}
     relevant["_scoring_version"] = SCORING_VERSION
     blob = json.dumps(relevant, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
@@ -132,11 +132,11 @@ def resolve_location_anchor(profile: dict[str, Any], settings: dict[str, Any],
     change to it correctly invalidates stored scores.
     """
     prefs = profile.setdefault("preferences", {}).setdefault("location", {})
-    default_radius = prefs.get("preferred_radius_km", 100)
     area = spec.get("area") or {}
     home = settings.get("home") or {}
+    default_radius = area.get("radius_km", 100)
 
-    if prefs.get("proximity_to", "search_area") == "home" and home.get("lat") is not None:
+    if area.get("proximity_to", "search_area") == "home" and home.get("lat") is not None:
         prefs["anchor"] = {"name": home.get("name", "dom"), "lat": home["lat"],
                            "lon": home["lon"], "radius_km": default_radius}
     elif area.get("lat") is not None:

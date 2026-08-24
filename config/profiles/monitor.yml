@@ -1,0 +1,67 @@
+# A search with NO domain pack at all. Same shape as every other search file,
+# and it works: price, location and condition are universal, and everything
+# specific to monitors is expressed as text rules. This is the whole of what a
+# new kind of product requires - one YAML file, no code, no pack.
+name: monitor
+source: olx
+
+search:
+  category_id: 1201              # OLX "Monitory"
+  queries: ['', '27 cali']
+  price: { from: 300, to: 2500 }
+  max_pages: 3
+  sort_by: created_at:desc
+  area:
+    name: Warszawa
+    city_id: 17871
+    lat: 52.2297
+    lon: 21.0122
+    radius_km: 100
+
+budget:
+  target: 900
+  comfortable_max: 1200
+  soft_max: 1600
+  hard_max: 2500
+  expensive_floor: 0.68
+
+scoring:
+  weights:
+    rules: 55                    # with no pack, the rules carry most of the score
+    location: 25
+    condition: 20
+
+  rules:
+    - name: high refresh rate
+      any: ['\b(120|144|165|170|180|240)\s*hz\b']
+      points: 20
+    - name: good resolution
+      any: ['\bqhd\b', '\b2560\s*x\s*1440\b', '\b1440p\b', '\b4k\b', '\b3840\s*x\s*2160\b']
+      points: 18
+    - name: sensible size
+      any: ['\b2[4-9]\s*("|cali|cale|cal\b)', '\b3[0-4]\s*("|cali|cale|cal\b)']
+      points: 12
+    - name: good panel
+      any: ['\bips\b', '\boled\b', '\bva\b']
+      points: 8
+    - name: usb-c or height adjustable
+      any: ['usb[\s-]?c\b', 'regulacj\w*\s*wysoko[sś]ci', '\bpivot\b']
+      points: 6
+    - name: low resolution
+      any: ['\b1366\s*x\s*768\b', '\b1280\s*x\s*1024\b', '\bhd\s*ready\b']
+      points: -15
+    - name: old TN panel
+      any: ['\btn\b']
+      points: -6
+    - name: dead pixels
+      any: ['martw\w*\s*piksel\w*', 'uszkodzon\w*\s*piksel\w*', 'przebarwieni\w*', 'zacieki']
+      points: -18
+    - name: broken
+      any: ['nie\s*dzia[lł]a', 'uszkodzon\w*', 'na\s*cz[eę][sś]ci', 'do\s*naprawy']
+      reject: true
+    - name: cracked screen
+      any: ['zbit\w*\s*(ekran|matryc)\w*', 'p[eę]kni[eę]t\w*\s*(ekran|matryc)\w*']
+      reject: true
+    - name: wanted ad, not for sale
+      any: ['\bkupi[eę]\b', '\bposzukuj[eę]\b', '\bszukam\b']
+      reject: true

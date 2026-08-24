@@ -1,5 +1,5 @@
-# Domain pack: everything bike-specific lives here, not in the engine.
-# Copy this directory to support a new kind of product - see docs/extending.md.
+# Domain pack: everything bike-specific lives here, in one file.
+# Copy this file to support a new kind of product - see docs/extending.md.
 
 name: bikes
 description: 'Bicycles: extraction rules for Polish marketplace listings.'
@@ -525,30 +525,46 @@ reject_rules:
 - attr: frame_size_letter
   in_from: frame_size.reject_letters
   message: size {value} is clearly wrong
-# Preference keys this domain's dimensions read, with defaults merged under
-# whatever a profile sets - so a profile only states what it wants to change.
 profile_schema:
   description: Fit windows, brand lists and groupset preferences for bikes.
   defaults:
     frame_size:
-      ideal_reach_mm: [395, 420]
-      acceptable_reach_mm: [385, 435]
+      ideal_reach_mm:
+      - 395
+      - 420
+      acceptable_reach_mm:
+      - 385
+      - 435
       comfort_stack_mm: 590
       reject_reach_below: 340
       reject_reach_above: 480
       label_confidence_cap: 0.85
-      preferred_cm: [54, 55, 56]
-      acceptable_cm: [52, 53, 57, 58]
-      preferred_letter: ['L', 'M/L']
-      acceptable_letter: ['M', 'XL']
-      reject_cm_below: 44
+      preferred_cm:
+      - 54
+      - 55
+      - 56
+      acceptable_cm:
+      - 52
+      - 53
+      - 57
+      - 58
+      preferred_letter:
+      - L
+      - M/L
+      acceptable_letter:
+      - M
+      - XL
+      reject_cm_below: 46
       reject_cm_above: 64
-      reject_letters: ['XXS', 'XXL']
+      reject_letters:
+      - XXS
+      - XS
+      - S
+      - XXL
     brands:
       preferred: []
       avoid: []
     preferred_groupsets: []
-
 default_weights:
   size: 32
   groupset: 22
@@ -556,9 +572,7 @@ default_weights:
   condition: 12
   location: 10
   brand: 8
-
 unknown_prior: 55
-
 verdict_bands:
 - - 85
   - Very good offer
@@ -580,14 +594,50 @@ verdict_notes:
 - when_attr: frame_size_letter
   text: size from the label - check the geometry
 verdict_fallback: size not stated
-
-# What the reports show for this product. The engine renders whatever is listed
-# here; it does not know that bikes have groupsets.
 display:
   summary:
-    - attrs: [frame_size_cm, frame_size_letter, frame_size_raw]
-      suffix: {frame_size_cm: ' cm'}
-      fallback: 'size ?'
-    - attrs: [groupset]
-      fallback: 'groupset ?'
-  chips: [brakes, frame_material, model_year]
+  - attrs:
+    - frame_size_cm
+    - frame_size_letter
+    - frame_size_raw
+    suffix:
+      frame_size_cm: ' cm'
+    fallback: size ?
+  - attrs:
+    - groupset
+    fallback: groupset ?
+  chips:
+  - brakes
+  - frame_material
+  - model_year
+lookups:
+  geometry:
+    merida:
+    - model: silex
+      generation: gen 1 (approx. 2017-2021)
+      years:
+      - 2017
+      - 2021
+      verified: true
+      source: provided by the owner of this repo; Merida Silex first-generation chart
+      variants:
+        M:
+          reach: 400
+          stack: 625
+        L:
+          reach: 415
+          stack: 644
+    - model: silex
+      generation: gen 2 (approx. 2022+)
+      years:
+      - 2022
+      - 2030
+      verified: true
+      source: provided by the owner of this repo; Merida Silex current chart
+      variants:
+        M:
+          reach: 412
+          stack: 607
+        L:
+          reach: 426
+          stack: 626

@@ -16,6 +16,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allegro source adapter
 - Desktop notifications and scheduled runs
 
+## [0.6.0] - 2026-08-24
+
+### Changed
+- **Every search file now has the same shape**, whatever is being bought: `name`,
+  `source`, `search`, `budget`, `scoring`. No product-specific preference keys, so
+  nothing has to be mapped per domain. Everything specific to what you are buying
+  is expressed as text rules.
+- **A domain pack is optional.** A search that declares none still works: price,
+  location and condition are universal, and its rules carry the rest.
+- **Rules compose as one weighted criterion instead of adding points on top.**
+  Stacking them was double counting - with a pack the same fact was scored twice,
+  and enough matches pushed any offer to 100. Negative points still subtract
+  directly, since a share clamped at zero cannot express a mentioned defect.
+- `proximity_to` moved into `search.area`, where it belongs.
+- The reference table folded into the domain file under `lookups:`; no separate
+  file, one pack is one YAML.
+- README rewritten with no product vocabulary and real English output. Its examples
+  had still been showing pre-translation Polish.
+
+### Added
+- `config/profiles/monitor.yml`: a complete search with **no domain pack at all**,
+  proving the zero-code path.
+
+### Fixed
+- **The negation guard was defined per domain pack, so a search without one lost it
+  entirely** and penalised "brak martwych pikseli" - *no* dead pixels - as an
+  admitted defect. Found on live data, where two clean monitors were both docked 18
+  points. Negation is a property of the listing language, not of the product, and
+  now belongs to the engine.
+- Size rejection bounds tightened to genuinely wrong sizes only.
+
 ## [0.5.0] - 2026-08-24
 
 ### Added

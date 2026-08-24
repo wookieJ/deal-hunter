@@ -1,28 +1,30 @@
-"""Generic spec lookup: brand + model generation + variant -> known attributes.
+"""Generic reference lookup: brand + model generation + variant -> known values.
 
-Marketplace listings name a model, not its specification. Where a reference table
-exists, real numbers beat whatever the seller wrote - a bike's reach and stack
-beat its size label, just as a laptop's real panel beats "14 inch". This module
-resolves that lookup for any category; the tables live in config/lookups/.
+Listings name a model, not its specification. Where a reference table exists, the
+real numbers beat whatever the seller typed. The table itself is domain-specific
+by nature and lives inside the domain file that owns it, under `lookups:`; this
+module only knows how to read one.
+
+Table shape, under `lookups: <table name>:`
+
+    <brand>:
+      - model: <name matched as a word in the title>
+        generation: <human label, shown when the match is uncertain>
+        years: [from, to]
+        verified: true|false
+        variants:
+          <VARIANT>: { <key>: <value>, ... }
 """
 from __future__ import annotations
 
 import re
-from functools import lru_cache
 from typing import Any
 
-import yaml
-
-from .. import config
+from .. import domains
 
 
-@lru_cache(maxsize=8)
 def _table(domain: str, name: str) -> dict[str, list[dict[str, Any]]]:
-    path = config.ROOT / "domains" / domain / "lookups" / f"{name}.yml"
-    if not path.exists():
-        return {}
-    with path.open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
+    return (domains.load(domain).get("lookups") or {}).get(name) or {}
 
 
 def resolve(table: str, domain: str, brand: str, title: str, variant: str,
@@ -53,7 +55,8 @@ def resolve(table: str, domain: str, brand: str, title: str, variant: str,
         chosen = max(matching, key=lambda e: (e.get("years") or [0])[0])
         ambiguous = len(matching) > 1
 
-    values = (chosen.get("sizes") or chosen.get("variants") or {}).get(variant.upper())
+    # `sizes` is accepted as a legacy alias for `variants`.
+    values = (chosen.get("variants") or chosen.get("sizes") or {}).get(variant.upper())
     if not values:
         return None
 
@@ -61,7 +64,7 @@ def resolve(table: str, domain: str, brand: str, title: str, variant: str,
         confidence = "ambiguous"
         note = f"model year unknown, assumed {chosen['generation']}"
     elif not chosen.get("verified", False):
-        confidence, note = "unverified", "geometry unverified"
+        confidence, note = "unverified", "reference data unverified"
     else:
         confidence, note = "exact", chosen["generation"]
 

@@ -1,79 +1,79 @@
 # Deal Hunter
 
-**Stop scrolling through hundreds of marketplace listings. Let a scoring engine
-read them for you.**
+**Stop scrolling through hundreds of marketplace listings. Describe what a good
+deal looks like in YAML, and let a scoring engine read them for you.**
 
-A local, manually-run tool that searches OLX, extracts real specs from messy
-Polish free-text listings, scores every offer against *your* criteria, remembers
-what it has already seen, and tells you what is new or has dropped in price since
-last time.
+A local, manually-run tool that searches a marketplace, scores every offer
+against criteria you define, remembers what it has already seen, and tells you
+what is new or has dropped in price since last time.
 
-The engine knows nothing about any particular product. What a product *is* — how
-to read its specs out of a listing, what makes one offer better than another —
-lives in a **domain pack** of YAML. **Adding a search is one YAML file; adding a
-product type is a directory of them.** No Python required either way — see
-[Extending](docs/extending.md).
+The engine knows nothing about what you are buying. **A new kind of search is one
+YAML file** — no code, no plugin, nothing to register.
 
-Ships with two real domains — `bikes` and `laptops` — and three searches
-(`gravel`, `mtb`, `laptop`) as worked examples, against **OLX**. The two packs
-share no vocabulary and no code; a test enforces that no product attribute ever
-leaks back into the engine.
+```
+=== Summary (monitor @ olx) ===
+  offers found  : 212
+  already known : 203
+  new           : 6
+  changed       : 3
 
-Want a keyword to move the score? That is one line of YAML:
+--- Changes to known offers ---
+  Gigabyte M27Q X 27" QHD IPS 240 Hz
+    price: 899 -> 689 PLN (drop 210 PLN, -23.4%)
+
+--- Best offers in the database ---
+
+ 1. Gigabyte M27Q X 27" QHD IPS 240 Hz
+    score 89/100   689 PLN
+    Łódź, Łódzkie | 211 km / 2h58m by car | private
+    Very good offer. Price 689 pln.
+    +55/55 rules +64/64 | +19/25 118 km from search area | +15/20 condition: used |
+    x1.00 price 689 PLN (within budget) | +20 high refresh rate | +18 good resolution |
+    +12 sensible size | +8 good panel | +6 usb-c or height adjustable
+```
+
+Every run also writes `reports/index.html` — one page with **a tab per search**,
+photo thumbnails, driving distance from your door and a direct link. Always the
+same path, so bookmark it once and refresh.
+
+## What a search looks like
+
+Every search file has the same shape, whatever you are buying. Generic fields
+first, then the rules that say what *you* care about:
 
 ```yaml
-rules:
-  - name: dedicated_gpu
-    any: ['nvidia', 'geforce', 'rtx']
-    points: 8
-  - name: liquid_damage
-    any: ['zalan\w*']
-    reject: true
+name: monitor
+source: olx
+
+search:
+  category_id: 1201
+  queries: ['', '27 cali']
+  price: { from: 300, to: 2500 }
+  area: { name: Warszawa, city_id: 17871, lat: 52.2297, lon: 21.0122, radius_km: 100 }
+
+budget:
+  target: 900          # the sweet spot
+  comfortable_max: 1200
+  soft_max: 1600
+  hard_max: 2500       # above this: rejected
+
+scoring:
+  weights: { rules: 55, location: 25, condition: 20 }
+  rules:
+    - { name: high refresh rate, any: ['\b(144|165|240)\s*hz\b'], points: 20 }
+    - { name: good resolution,   any: ['\bqhd\b', '\b4k\b'],      points: 18 }
+    - { name: dead pixels,       any: ['martw\w*\s*piksel\w*'],   points: -18 }
+    - { name: broken,            any: ['nie\s*dzia[lł]a'],        reject: true }
 ```
 
-No extractor, no dimension, no Python. Rules work in a domain pack or in a single
-profile, so a one-off search can add its own.
+That is a complete, working search. Patterns are regexes, matched against the
+title, the description and the marketplace's own fields. `reject:` throws an
+offer out, `require:` demands a match, `scope: title` narrows a rule.
 
-```
-=== Podsumowanie (gravel @ olx) ===
-  znalezionych ofert : 206
-  juz znanych        : 203
-  nowych             : 0
-  zmienionych        : 3
-
---- Zmiany w znanych ofertach ---
-  Trek Checkpoint alr5 gravel
-    cena: 5900 -> 5500 zl (spadek 400 zl, -6.8%)
-
---- Najlepsze oferty w bazie ---
-
- 1. Rower Gravel Specialized Diverge E5 Sport Hydraulika 105 rama 56cm
-    score 100/100   3199 zl   56 cm   Shimano 105
-    Łódź, Łódzkie | prywatnie | hydraulic_disc | aluminium
-    Bardzo dobra oferta. Rozmiar sie zgadza, osprzet shimano 105, cena 3199 zl.
-    +30/30 rozmiar 56 cm (preferowany) | +20/25 osprzet Shimano 105 |
-    +25/25 cena 3199 zl (w budzecie docelowym) | +10/10 marka specialized (preferowana) |
-    +7/10 stan: używane | +6 atuty: hydraulic_disc, through_axle | +2 sprzedawca prywatny
-```
-
-Every run also writes a self-contained HTML report to `reports/index.html` — one
-page with **a tab per search**, photo thumbnails, the seller's location, driving
-distance from your door and a direct link. Always the same path, so bookmark it
-once and refresh; the tab you were on is remembered.
-
-## Why not just use the marketplace's own filters?
-
-Because they are not good enough to find a deal:
-
-| What matters when buying a bike | What OLX lets you filter by |
-|---|---|
-| Frame size (54 cm, 56 cm, L) | Inch buckets only: `17-18"`, `19-20"` |
-| Groupset (GRX 400 vs Claris) — the biggest price driver | **No filter at all** |
-| Brakes, axles, tubeless, model year | Partially, and only when the seller filled it in |
-
-In a live sample, OLX's own frame-size field was filled in for **12 of 52**
-listings. The real information is in the title and description — so this tool
-reads those instead.
+Negation is handled: a listing saying *"brak martwych pikseli"* — no dead pixels
+— does not trip the dead-pixel rule. Sellers advertise the absence of defects far
+more often than their presence, and reading that backwards is the worst mistake a
+deal hunter can make.
 
 ## Quickstart
 
@@ -82,235 +82,114 @@ Requires Python 3.11+.
 ```bash
 git clone https://github.com/wookieJ/deal-hunter.git
 cd deal-hunter
-./setup.sh                  # creates .venv, installs 3 dependencies
-./run.sh run                # search, score, store, report
+./setup.sh            # creates .venv, installs 3 dependencies
+./install-cli.sh      # optional: puts `deal` on your PATH
+deal run -p monitor
 ```
 
-That is the whole setup. No server, no scheduler, no API keys, no account.
-
-To run it from anywhere instead of from this directory:
-
-```bash
-./install-cli.sh            # puts `deal` on your PATH
-deal run                    # works from any directory
-```
-
-The installer symlinks a launcher that points at this checkout, so config, data
-and reports always resolve here no matter where you invoke it from. It picks a
-bin directory already on your PATH; override with `DEAL_BIN_DIR=/somewhere`.
+No server, no scheduler, no API keys, no account.
 
 ## Usage
 
 ```bash
-./run.sh run                      # search with the default 'gravel' profile
-                                  # (or just `deal run` after ./install-cli.sh)
-./run.sh run -p gravel            # pick a profile explicitly
-./run.sh run -l 40                # stop after 40 offers (quick test)
-./run.sh run --no-report          # skip the HTML report
-./run.sh top -n 20                # best offers already in the DB, no fetching
-./run.sh history olx:1089311360   # price history of a single offer
-./run.sh rescore                  # recompute scores after editing a profile (offline)
-./run.sh reset                    # wipe collected offers and start fresh
-./run.sh profiles                 # list available searches
-./run.sh report                   # rebuild the combined report (offline)
-./test.sh                         # run the test suite (offline)
+deal run -p <search>          # search, score, store, report
+deal run -p <search> -l 40    # stop after 40 offers (quick test)
+deal top -p <search> -n 20    # best stored offers, no fetching
+deal history olx:1089311360   # price history of one offer
+deal rescore -p <search>      # recompute after editing a search file (offline)
+deal report                   # rebuild the combined report (offline)
+deal reset                    # wipe collected offers
+deal profiles                 # list searches
+./test.sh                     # run the test suite
 ```
 
-`./install-cli.sh` gives you both `deal` and the longer `dealhunter` alias. Set
-`DEALHUNTER_HOME` if you want config and data somewhere other than the repo.
-
-## Two locations, deliberately separate
-
-This tool deals with two different places, and conflating them produces nonsense:
-
-| | Where it lives | What it does |
-|---|---|---|
-| **Search area** | `search.olx.area` in a profile | Where offers are hunted. A search parameter — you can hunt in a city you do not live in. Also narrows OLX's 1000-result cap: a city +100 km returns ~760 offers instead of 1000 truncated from the whole country. |
-| **Home** | `config/settings.local.yml` | Where *you* live. Used only for the travel distance shown in reports. |
-
-`proximity_to` decides which of the two the proximity score measures against, so
-hunting around another city rewards offers *there*, while the report still tells
-you how far each one is from your own door.
-
-**Personal values never reach the repository.** Two gitignored files override the
-tracked ones, and you only put in them the keys you want to change:
-
-| File | Holds |
-|---|---|
-| `config/settings.local.yml` | Your home coordinates |
-| `config/profiles/<name>.local.yml` | Your body measurements, budget and city |
-
-The committed `config/settings.yml` and `config/profiles/gravel.yml` are examples
-with placeholder numbers, so cloning and running works immediately — and your
-height, inseam, budget and address stay on your machine. Each file's comments show
-the block to copy.
-
-## The scoring model
+## How it scores
 
 ```
-final = spec_score  x  budget_fit  +  bargain_bonus
+final = spec_score  x  budget_fit  +  bonuses
 ```
 
-**Why multiplicative, not a flat weighted sum.** In a flat sum, an expensive bike
-with a better groupset simply outscores a sensibly priced one — which is the exact
-opposite of what a deal hunter should do. Making budget fit a *multiplier* means a
-bike at 5000 PLN keeps only ~75% of its spec score, so it has to be genuinely
-exceptional to beat a well-priced one, while still showing up if it really is.
+**Budget fit is a multiplier, not one criterion among many.** In a flat weighted
+sum, an expensive well-specified item outranks a sensibly priced one purely on
+spec — the opposite of what a deal hunter should do. As a multiplier, something
+near your ceiling keeps only ~70% of its score, so it has to be genuinely
+exceptional to win, while still appearing if it really is.
 
-**Sizing uses real geometry, not the size label.** Nominal sizes are not
-comparable across brands, or even across generations of the same model:
+**Unknown is not the same as bad.** A criterion that cannot be determined drops
+out of the weight normalisation instead of scoring low, so a terse listing is not
+punished for being terse. Matching is regex over inflected Polish and *will* miss
+things; a miss must cost certainty, not points. The score then regresses toward a
+neutral prior in proportion to what is unknown, so a near-empty listing cannot top
+the ranking either. You are told which it is:
 
-| Merida Silex | reach | stack |
-|---|---|---|
-| gen 1, size M | 400 mm | 625 mm |
-| gen 1, size L | 415 mm | 644 mm |
-| gen 2, size M | 412 mm | 607 mm |
-| gen 2, size L | 426 mm | 626 mm |
-
-A gen-2 M has more reach than a gen-1 M and nearly as much as a gen-1 L. So when
-the model is present in `config/geometry.yml` the score uses reach and stack
-against a window derived from your height; otherwise it falls back to the size
-label at a **capped** confidence and says so in the reasons.
-
-**Bargain detection** estimates a rough market value from the spec (groupset tier,
-frame material, brakes, age, condition) and rewards offers priced well below it —
-so a cheap bike with good parts rises, and an overpriced one is marked as such.
-
-## Tuning what counts as a good deal
-
-Everything about *what you want* lives in a YAML profile. No Python required:
-
-```yaml
-preferences:
-  budget:
-    target: 4000            # the sweet spot
-    comfortable_max: 4500   # no penalty at or below this
-    soft_max: 5000          # worth it only if clearly better
-    hard_max: 6500          # above this: rejected
-  rider:
-    height_cm: 178                # yours goes in gravel.local.yml, not here
-    inseam_cm: 82
-  location:
-    proximity_to: search_area     # or "home" - what proximity is measured against
-    preferred_radius_km: 100      # scored, never a hard filter
-  frame_size:
-    ideal_reach_mm: [402, 426]    # used when geometry is known
-    label_confidence_cap: 0.85    # a size label never scores full marks
-    preferred_letter: ["L", "M/L"]
-  preferred_groupsets: [grx]      # preferred, never required
-  disqualifying: [parts_only, frame_damage, kids_bike, ebike, flatbar]
-
-weights:                          # spec dimensions; price is NOT one of them
-  size: 32
-  groupset: 22
-  features: 16
-  condition: 12
-  location: 10
-  brand: 8
+```
+confidence 48% (48/100 of weight known) -> 94 blended toward 55 = 74
 ```
 
-Hunting a different kind of bike? Copy the profile, change `category_id` (ids for
-every OLX bike category are listed in `src/dealhunter/sources/olx.py`) and adjust
-the preferences.
+**Every score explains itself.** Each line above is a criterion, its contribution
+and its reason. A score you cannot argue with is a score you cannot trust.
 
 ## How it works
 
 ```
-Source ──► Normalizer ──► Enricher* ──► Scorer ──► Storage ──► Reporter
-(OLX)      (regex)        (none yet)    (profile)  (SQLite)    (console + HTML)
+Source ──► Extract ──► Enrich* ──► Score ──► Storage ──► Report
 ```
 
-Each arrow is a Protocol, so any layer can be replaced without touching the others.
-
-**Source** talks to OLX's own JSON API rather than scraping HTML, so there is no
-DOM to break. One catch worth knowing: OLX rejects `curl`, `requests` and `httpx`
-with HTTP 403 based on TLS fingerprint, so the adapter uses
+**Source** talks to the marketplace's own JSON API rather than scraping HTML, so
+there is no DOM to break. One catch worth knowing: OLX rejects `curl`, `requests`
+and `httpx` with HTTP 403 based on TLS fingerprint, so the adapter uses
 [`curl_cffi`](https://github.com/lexiforest/curl_cffi) impersonating Chrome.
 
-**Normalizer** pulls structure out of free text: brand, model, frame size,
-groupset and its quality tier, brakes, material, wheel size, model year and
-feature flags. It also guards against negation — sellers advertise the *absence*
-of damage far more often than its presence, and reading "rama bez pęknięć" as
-"cracked frame" silently rejects some of the best-described offers.
-
-**Scorer** turns attributes plus your profile into a 0-100 score. Every dimension
-contributes a signed, human-readable reason, so you can always see *why* something
-scored 91 — a score you cannot argue with is a score you cannot trust.
-
-**Travel** adds real driving distance and time from your home to each offer shown
-in a report, via the free public OSRM routing service — no API key. Results are
-cached on a coordinate grid, so a run costs a handful of requests. Amusingly, OSRM
-*rejects* the browser-impersonating client that OLX *requires*, so that call
-deliberately uses plain `urllib`.
-
-**Scoring treats silence honestly.** A dimension that cannot be determined drops
-out of the weight normalisation instead of scoring low, so a terse listing is not
-punished for being terse — which matters because extraction is regex over
-inflected Polish and *will* miss things. The score then regresses toward a neutral
-prior in proportion to what is unknown, so a near-empty listing cannot top the
-ranking either. What you get instead is a confidence figure: `confidence 48% ->
-94 blended toward 55 = 74`.
-
 **Storage** stores each offer once and appends a new *version* row only when
-`sha256(price | title | description)` changes. That single mechanism gives you
+`sha256(price | title | description)` changes. That single mechanism gives
 deduplication, new-offer detection, price-change detection and full price history
 at the same time.
 
-## Project structure
+**Travel** adds real driving distance and time from your home via the free public
+OSRM service — no API key. Amusingly, OSRM *rejects* the browser-impersonating
+client that OLX *requires*, so that call deliberately uses plain `urllib`.
 
-```
-config/profiles/       one file per search (gravel, mtb, laptop) - pure YAML
-domains/bikes/
-  domain.yml           what a bike is: keyword rules, extraction, dimensions, value, display
-  lookups/geometry.yml reference table: model generation -> real reach/stack
-domains/laptops/
-  domain.yml           a second product type - no code was written for it
-src/dealhunter/        the engine - knows nothing about any product
-  sources/             marketplace adapters      -> add Allegro here
-  normalize/engine.py  declarative extraction    -> driven by a domain pack
-  scoring/engine.py    declarative scoring       -> driven by a domain pack
-  storage/             SQLite schema, dedup, change detection
-  report/              console + tabbed HTML output
-  pipeline.py          the only module that knows the full sequence
-tests/                 76 offline tests
-docs/extending.md      how to add a search, product type, source or enricher
-```
+## Going further than rules
 
-## Roadmap
+Rules cover most of what you want to say. When a search needs real structure —
+numeric ranges, quality tiers, or a reference table mapping a model to its actual
+specification — add an optional **domain pack**: one YAML file under `domains/`
+that a search opts into with a single `domain:` line. Nothing else changes.
 
-Deliberately not built yet, but the seams are in place — each maps to exactly one
-layer (details in [docs/extending.md](docs/extending.md)):
+Two packs ship as worked examples. Neither shares vocabulary or code with the
+other, and a test walks the engine source and fails if product knowledge leaks
+back into it. See [docs/extending.md](docs/extending.md).
 
-- [ ] Detect sold/removed offers via per-listing re-check
-- [ ] Replace the heuristic market-value model with real reference prices computed
-      from observed listing history
-- [ ] LLM analysis of descriptions, and image analysis
-- [ ] Allegro and other marketplaces
-- [ ] Notifications and scheduled runs
-- [ ] MCP server so Claude or ChatGPT can query your findings
+## Two locations, deliberately separate
+
+| | Where it lives | What it does |
+|---|---|---|
+| **Search area** | `search.area` in a search file | Where offers are hunted. You can hunt in a city you do not live in. Also narrows the marketplace's result cap. |
+| **Home** | `config/settings.local.yml` | Where *you* live. Used only for travel distance in reports. |
+
+**Personal values never reach the repository.** `config/settings.local.yml` and
+`config/profiles/<name>.local.yml` are gitignored and override the tracked files,
+which ship with placeholders — so cloning works immediately while your address,
+budget and preferences stay on your machine.
 
 ## Honest limitations
 
-- Groupset is recognised in roughly **half** of listings; the rest get a neutral
-  score rather than a wrong one.
-- The geometry table ships with **Merida Silex only**. Every other model falls back
-  to label-based sizing at reduced confidence until you add it — see the template
-  in `config/geometry.yml`. Manufacturer charts are the source; do not guess.
-- Market value is a **heuristic**, not comparable-sales data. It answers "is this
-  cheap for what it is?", not "what is this bike worth?".
-- OLX caps any single search at **1000 results**, so broad profiles cannot be
-  fully enumerated — narrow them with price and category filters.
+- Matching is regex over inflected Polish and misses things. That is survivable
+  only because a miss produces *unknown*, which costs no points — but it does mean
+  the confidence figure is doing real work.
+- The marketplace caps any single search at 1000 results; narrow with price,
+  category and area.
 - Sold and removed offers are never marked inactive, so the database accumulates
   stale entries.
-- This uses an **undocumented internal API** that could change or start blocking
-  at any time.
+- Market-value estimates are a heuristic, not comparable-sales data. Without a
+  domain pack that declares one, no estimate is made at all.
+- This uses an undocumented internal API that could change or start blocking.
 
 ## Etiquette
 
 Requests are rate-limited to one per second, and raw payloads are archived under
 `data/raw/` so re-analysis never means re-scraping. This is a personal-use tool
-that browses public listings at roughly human speed. Please keep it that way, and
-check OLX's terms before doing anything more aggressive.
+that browses public listings at roughly human speed. Please keep it that way.
 
 ## License
 

@@ -66,13 +66,16 @@ class TestProfileFingerprint(unittest.TestCase):
                          self.config.profile_fingerprint(dict(self.profile)))
 
     def test_changing_a_weight_changes_the_fingerprint(self):
-        changed = {**self.profile, "weights": {**self.profile["weights"], "size": 99}}
+        changed = {**self.profile,
+                   "scoring": {**self.profile["scoring"],
+                               "weights": {**self.profile["scoring"].get("weights", {}),
+                                           "location": 99}}}
         self.assertNotEqual(self.config.profile_fingerprint(self.profile),
                             self.config.profile_fingerprint(changed))
 
     def test_changing_the_search_query_does_not(self):
         """Search scope is not a scoring rule - rescoring it would be pointless work."""
-        changed = {**self.profile, "search": {"olx": {"category_id": 1651}}}
+        changed = {**self.profile, "search": {"category_id": 1651}}
         self.assertEqual(self.config.profile_fingerprint(self.profile),
                          self.config.profile_fingerprint(changed))
 

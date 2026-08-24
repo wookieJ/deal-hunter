@@ -29,7 +29,7 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
         make_report: bool = True, quiet: bool = False) -> dict[str, Any]:
     started = time.monotonic()
     profile = config.load_profile(profile_name)
-    domain = profile.get("domain", "bikes")
+    domain = profile.get("domain")
     source_name, spec = prepare(profile, settings)
 
     source = get_source(source_name, settings)
@@ -43,8 +43,8 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
     first_run = repo.is_first_run(profile["name"])
 
     if not quiet:
-        print(f"Searching: profile '{profile['name']}' on {source_name} "
-              f"(category {spec['category_id']}, up to {spec.get('max_pages', 3)} pages)...")
+        print(f"Searching: '{profile['name']}' on {source_name} "
+              f"(category {spec.get('category_id')}, up to {spec.get('max_pages', 3)} pages)...")
 
     fetched: list[RawListing] = []
     stats = {"found": 0, "new": 0, "changed": 0, "seen": 0, "disqualified": 0}
@@ -155,9 +155,9 @@ def build_index(repo: Repo, settings: dict[str, Any], report_dir: Path,
         changed = current["changed"] if is_current else []
         travel.annotate(top, new, changed)
         try:
-            tab_domain = config.load_profile(name).get("domain", "bikes")
+            tab_domain = config.load_profile(name).get("domain")
         except FileNotFoundError:
-            tab_domain = "bikes"     # a profile whose file was deleted still has stored offers
+            tab_domain = None        # a profile whose file was deleted still has stored offers
         for group in (top, new, changed):
             display.annotate(group, tab_domain)
         tabs.append({"name": name, "source": row["source"] or "olx", "stats": stats,
@@ -169,22 +169,36 @@ def build_index(repo: Repo, settings: dict[str, Any], report_dir: Path,
 
 
 def prepare(profile: dict[str, Any], settings: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    """Fill in the domain's defaults, then reconcile the two locations.
+    """Normalise one search file into what the engine expects.
 
-    A domain declares which preference keys its dimensions read and what they
-    default to, so a profile only states what it actually wants to change - and
-    a profile for one domain is not expected to know another domain's vocabulary.
+    Every search file has the same shape - name, source, search, budget, scoring -
+    with no product-specific fields, so nothing has to be mapped per domain. This
+    flattens it, folds in the optional domain's defaults, and reconciles the
+    search area with the user's home.
     """
-    pack = domains.load(profile.get("domain", "bikes"))
-    schema = pack.get("profile_schema") or {}
+    pack = domains.load(profile.get("domain"))
+    scoring = profile.setdefault("scoring", {})
 
-    prefs = profile.setdefault("preferences", {})
-    profile["preferences"] = config.deep_merge(schema.get("defaults") or {}, prefs)
-    if pack.get("default_weights"):
-        profile["weights"] = config.deep_merge(pack["default_weights"], profile.get("weights") or {})
+    prefs = config.deep_merge((pack.get("profile_schema") or {}).get("defaults") or {},
+                              profile.get("preferences") or {})
+    prefs["budget"] = profile.get("budget") or prefs.get("budget") or {}
+    prefs["rules"] = list(scoring.get("rules") or [])
+    prefs["disqualifying"] = list(scoring.get("disqualifying") or prefs.get("disqualifying") or [])
+    prefs["required"] = list(scoring.get("required") or prefs.get("required") or [])
+    prefs["penalties"] = scoring.get("penalties") or prefs.get("penalties") or {}
+    profile["preferences"] = prefs
 
-    source_name = next(iter(profile["search"]))
-    spec = profile["search"][source_name]
+    scoring["weights"] = config.deep_merge(pack.get("default_weights") or {},
+                                           scoring.get("weights") or {})
+
+    source_name = profile.get("source", "olx")
+    spec = dict(profile.get("search") or {})
+    price = spec.pop("price", None) or {}
+    if price.get("from") is not None:
+        spec["price_from"] = price["from"]
+    if price.get("to") is not None:
+        spec["price_to"] = price["to"]
+
     config.resolve_location_anchor(profile, settings, spec)
     return source_name, spec
 
@@ -201,7 +215,7 @@ def rescore(repo: Repo, profile: dict[str, Any], settings: dict[str, Any],
     if not stale:
         return 0
 
-    domain = profile.get("domain", "bikes")
+    domain = profile.get("domain")
     normalizer = get_normalizer(domain)
     scorer = get_scorer(domain)
     sources: dict[str, Any] = {}

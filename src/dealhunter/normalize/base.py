@@ -16,6 +16,6 @@ class Normalizer(Protocol):
     def normalize(self, raw: RawListing) -> Attributes: ...
 
 
-def get_normalizer(domain: str) -> Normalizer:
+def get_normalizer(domain: str | None) -> Normalizer:
     from .engine import Engine
     return Engine(domain)

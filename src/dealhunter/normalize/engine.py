@@ -29,14 +29,24 @@ from ..models import Attributes, RawListing
 from .lookup import resolve as lookup_resolve
 
 
-class Engine:
-    """Runs one domain's extraction rules over a listing."""
+# Every marketplace offer has these regardless of what is being sold, so the
+# engine reads them itself. This is knowledge of the source, not of the product.
+# See scoring.engine.DEFAULT_NEGATION - the same guard, for the same reason.
+from ..scoring.engine import DEFAULT_NEGATION
 
-    def __init__(self, domain: str):
+UNIVERSAL_EXTRACT = [
+    {"key": "condition", "type": "param", "param": "state"},
+]
+
+
+class Engine:
+    """Runs a domain's extraction rules over a listing. The domain is optional."""
+
+    def __init__(self, domain: str | None):
         self.domain = domain
         self.spec = domains.load(domain)
         self.category = self.spec.get("name", domain)
-        self._negation = re.compile(self.spec["negation"]) if self.spec.get("negation") else None
+        self._negation = re.compile(self.spec.get("negation") or DEFAULT_NEGATION)
         self._components = (re.compile(self.spec["component_context"])
                             if self.spec.get("component_context") else None)
 
@@ -47,7 +57,7 @@ class Engine:
         params = {k: v.lower() for k, v in raw.params.items()}
         attrs: Attributes = {"is_business": raw.is_business}
 
-        for rule in self.spec.get("extract", []):
+        for rule in UNIVERSAL_EXTRACT + list(self.spec.get("extract") or []):
             handler = self._handler(rule["type"])
             handler(rule, attrs, text, title, params, raw)
 
@@ -78,7 +88,7 @@ class Engine:
         best-described offers - the worst possible failure for a deal hunter.
         """
         for m in re.finditer(pattern, text):
-            if not self._negation or not self._negation.search(text[max(0, m.start() - 45):m.start()]):
+            if not self._negation.search(text[max(0, m.start() - 45):m.start()]):
                 return True
         return False
 
