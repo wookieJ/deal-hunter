@@ -28,11 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carries only a placeholder.
 - `proximity_to` setting choosing whether the proximity score measures distance from
   the search area or from home.
+- `report.keep_dated_copies` setting (default `false`) for keeping a timestamped
+  archive alongside the stable report.
 - `reset` command to wipe collected offers. It keeps `travel_cache` by default, since
   that table maps coordinates to road distances, never goes stale, holds nothing about
   offers, and costs one routing request per entry to rebuild. `--all` drops it too.
 
 ### Changed
+- **The HTML report is written to one stable path** (`<profile>_latest.html`) instead
+  of a new timestamped file per run. A filename that changes every run cannot be
+  bookmarked and just accumulates copies of a view that is only ever interesting in
+  its latest state.
 - **Search area and home address are now separate concepts.** Previously one field did
   both jobs, which breaks as soon as you hunt somewhere you do not live: the search
   area defines where to look, while home only ever drives the travel distances in

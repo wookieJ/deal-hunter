@@ -26,6 +26,9 @@ storage:
 report:
   dir: reports
   top_n: 15                  # how many offers to show in console/HTML highlights
+  # The report is always written to <profile>_latest.html - one stable path you can
+  # bookmark, so every run refreshes the page you already have open.
+  keep_dated_copies: false   # true also keeps a timestamped archive per run
 
 travel:
   # Driving distance/time from your home to each offer, shown in the reports.

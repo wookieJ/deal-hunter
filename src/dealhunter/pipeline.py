@@ -112,13 +112,18 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
         console.offers(best, "Najlepsze oferty w bazie")
 
     if make_report:
-        report_dir = config.resolve(settings["report"]["dir"])
-        stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
-        path = html.render(report_dir / f"{profile['name']}_{stamp}.html",
+        report_cfg = settings.get("report", {})
+        report_dir = config.resolve(report_cfg["dir"])
+        # One stable path, always overwritten: a new filename per run cannot be
+        # bookmarked and just accumulates copies of a view that is only ever
+        # interesting in its latest state.
+        path = html.render(report_dir / f"{profile['name']}_latest.html",
                            profile["name"], source_name, stats,
                            new_offers, changed_offers, best)
-        latest = report_dir / f"{profile['name']}_latest.html"
-        latest.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+        if report_cfg.get("keep_dated_copies"):
+            stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+            archive = report_dir / f"{profile['name']}_{stamp}.html"
+            archive.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
         stats["report_path"] = path
         if not quiet:
             print(f"\nRaport HTML: {path}")
