@@ -185,6 +185,29 @@ class Repo:
         params.append(limit)
         return [self._row(r) for r in self.conn.execute(sql, params)]
 
+    def profiles_with_data(self) -> list[dict[str, Any]]:
+        """Every profile that has scored offers, with its most recent run stats.
+
+        Lets one report carry a tab per search instead of a file per search.
+        """
+        rows = self.conn.execute(
+            "SELECT s.profile, COUNT(*) AS offers, "
+            "  (SELECT source FROM run WHERE profile=s.profile ORDER BY id DESC LIMIT 1) AS source, "
+            "  (SELECT started_at FROM run WHERE profile=s.profile AND finished_at IS NOT NULL "
+            "     ORDER BY id DESC LIMIT 1) AS last_run, "
+            "  (SELECT n_found FROM run WHERE profile=s.profile AND finished_at IS NOT NULL "
+            "     ORDER BY id DESC LIMIT 1) AS found, "
+            "  (SELECT n_new FROM run WHERE profile=s.profile AND finished_at IS NOT NULL "
+            "     ORDER BY id DESC LIMIT 1) AS new, "
+            "  (SELECT n_changed FROM run WHERE profile=s.profile AND finished_at IS NOT NULL "
+            "     ORDER BY id DESC LIMIT 1) AS changed, "
+            "  (SELECT n_seen FROM run WHERE profile=s.profile AND finished_at IS NOT NULL "
+            "     ORDER BY id DESC LIMIT 1) AS seen, "
+            "  SUM(s.disqualified) AS rejected "
+            "FROM score s GROUP BY s.profile ORDER BY s.profile"
+        )
+        return [dict(r) for r in rows]
+
     def price_history(self, uid: str) -> list[dict[str, Any]]:
         rows = self.conn.execute(
             "SELECT seen_at, price FROM listing_version WHERE uid=? ORDER BY id", (uid,)

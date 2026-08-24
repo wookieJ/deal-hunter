@@ -21,15 +21,31 @@ def _size_label(attrs: dict[str, Any]) -> str:
     return attrs.get("frame_size_raw") or "size ?"
 
 
-def render(path: Path, profile: str, source: str, stats: dict[str, Any],
-           new: list[dict], changed: list[dict], top: list[dict]) -> Path:
-    for group in (new, changed, top):
+def _prepare(*groups: list[dict]) -> None:
+    for group in groups:
         for offer in group:
             offer["size_label"] = _size_label(offer.get("attrs", {}))
+
+
+def render(path: Path, profile: str, source: str, stats: dict[str, Any],
+           new: list[dict], changed: list[dict], top: list[dict]) -> Path:
+    """Single-profile report."""
+    _prepare(new, changed, top)
     html = _ENV.get_template("template.html.j2").render(
         profile=profile, source=source, stats=stats, new=new, changed=changed, top=top,
         generated=datetime.now().strftime("%Y-%m-%d %H:%M"),
     )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html, encoding="utf-8")
+    return path
+
+
+def render_tabs(path: Path, tabs: list[dict[str, Any]]) -> Path:
+    """One report, one tab per search - so several profiles share a single link."""
+    for tab in tabs:
+        _prepare(tab.get("new", []), tab.get("changed", []), tab.get("top", []))
+    html = _ENV.get_template("tabs.html.j2").render(
+        tabs=tabs, generated=datetime.now().strftime("%Y-%m-%d %H:%M"))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(html, encoding="utf-8")
     return path

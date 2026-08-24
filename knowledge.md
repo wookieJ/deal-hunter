@@ -19,8 +19,8 @@ rewrite.
 | Owner | wookieJ |
 | Status | Active |
 | Tags | `deal-hunter`, `olx`, `scraping`, `bikes`, `scoring`, `sqlite`, `python` |
-| Current focus | v0.3 published as a standalone git repo; database cleared for a fresh start |
-| Next action | Populate `config/geometry.yml` beyond Merida Silex from manufacturer charts |
+| Current focus | v0.4: generic engine + YAML domain packs; searches need no code |
+| Next action | Populate `domains/bikes/lookups/geometry.yml` beyond Merida Silex from manufacturer charts |
 | Main output | `./run.sh run` -> console summary + `reports/gravel_latest.html` |
 
 ## Directory Map
@@ -37,7 +37,9 @@ rewrite.
 | `src/dealhunter/scoring/` | Attributes + profile -> 0-100 score with reasons. |
 | `src/dealhunter/storage/` | SQLite schema and change detection. |
 | `src/dealhunter/report/` | Console and HTML output. |
-| `config/geometry.yml` | Manufacturer reach/stack per model generation. Never guess these. |
+| `domains/<name>/domain.yml` | Domain pack: extraction rules, scoring dimensions, value model. |
+| `domains/<name>/lookups/*.yml` | Reference tables. Never guess these numbers. |
+| `domains/<name>/hooks.py` | Optional escape hatch for rules YAML cannot express. |
 | `src/dealhunter/travel.py` | Driving distance from home via OSRM, cached. |
 | `docs/extending.md` | How to add a source, category or enricher. |
 | `data/` | SQLite DB and raw payload archive (gitignored). |
@@ -61,6 +63,10 @@ rewrite.
 | 2026-08-24 | Search area and home address kept separate | One field cannot serve both: the search area is where to hunt (a search parameter), home is where the owner lives (report distances only) | `search.<source>.area` narrows the hunt and the 1000-cap; `proximity_to` picks the scoring anchor |
 | 2026-08-24 | Personal values in gitignored `*.local.yml` overrides | Repo is public; home coordinates, height, inseam and budget are all personal | Tracked `settings.yml` and `profiles/gravel.yml` are examples; local files deep-merge over them; tests pin `use_local=False` so CI is deterministic |
 | 2026-08-24 | Report written to one stable path, overwritten each run | A per-run filename cannot be bookmarked and accumulates copies of a view only interesting in its latest state | `reports/<profile>_latest.html`; dated archives opt-in via `report.keep_dated_copies` |
+| 2026-08-24 | Engine split from YAML domain packs | Tool was a bike script with an engine attached; new product types required code | `domains/<name>/` carries extraction + scoring; new search = one YAML file |
+| 2026-08-24 | Unknown dimensions leave the weight normalisation | Sparse listings were scored as if features were absent - grading the description, not the product; regex over inflected Polish misses things routinely | A miss now costs certainty, not points |
+| 2026-08-24 | Low confidence regresses toward a neutral prior | Renormalisation alone let 22% of weight set 100% of score; an empty listing hit 94/100 | `unknown_prior` in the domain; confidence reported in every score |
+| 2026-08-24 | One report with a tab per search | A file per profile does not scale past one search | `reports/index.html`, selected tab remembered |
 | 2026-08-24 | Distance scored, never filtered | Owner prefers a home region but wants exceptional offers elsewhere to surface | Uses lat/lon OLX returns per offer - no geocoding needed |
 | 2026-08-24 | Seller type removed from scoring | Owner wants shops and outlets to compete equally | `private_seller` bonus dropped |
 | 2026-08-24 | Scores carry a profile fingerprint; stale ones are rebuilt from archived payloads | Offers dropping out of the search window kept scores from old rules and still ranked - a 5700 PLN bike showed above a 5500 PLN hard limit | Profile edits are self-healing; `run` rescores automatically, `rescore` on demand, all offline |

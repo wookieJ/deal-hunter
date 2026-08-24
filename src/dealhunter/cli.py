@@ -43,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
     reset.add_argument("--all", action="store_true",
                        help="also drop the driving-distance cache")
 
+    sub.add_parser("report", help="rebuild the combined HTML report (offline)")
+
     sub.add_parser("profiles", help="list the available profiles")
 
     args = parser.parse_args(argv)
@@ -89,6 +91,11 @@ def main(argv: list[str] | None = None) -> int:
         for table, count in removed.items():
             print(f"  deleted {count:>5} from {table}")
         print("Database cleared.")
+    elif args.command == "report":
+        repo = _open_repo(settings)
+        path = pipeline.build_index(repo, settings,
+                                    config.resolve(settings["report"]["dir"]))
+        print(f"HTML report: {path}")
     elif args.command == "profiles":
         for name in config.list_profiles():
             print(f"  {name}")

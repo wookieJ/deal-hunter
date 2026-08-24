@@ -8,9 +8,14 @@ Polish free-text listings, scores every offer against *your* criteria, remembers
 what it has already seen, and tells you what is new or has dropped in price since
 last time.
 
-Version 1 covers **OLX** and **bikes**. The architecture is built so that new
-marketplaces, product categories and analysis steps slot in without a rewrite —
-see [Extending](docs/extending.md).
+The engine knows nothing about any particular product. What a product *is* — how
+to read its specs out of a listing, what makes one offer better than another —
+lives in a **domain pack** of YAML. **Adding a search is one YAML file; adding a
+product type is a directory of them.** No Python required either way — see
+[Extending](docs/extending.md).
+
+Ships with a `bikes` domain and two searches (`gravel`, `mtb`) as worked examples,
+against **OLX**.
 
 ```
 === Podsumowanie (gravel @ olx) ===
@@ -34,9 +39,10 @@ see [Extending](docs/extending.md).
     +7/10 stan: używane | +6 atuty: hydraulic_disc, through_axle | +2 sprzedawca prywatny
 ```
 
-Every run also writes a self-contained HTML report with photo thumbnails, the
-seller's location, driving distance from home and a direct link — because for
-bikes a picture settles it in three seconds.
+Every run also writes a self-contained HTML report to `reports/index.html` — one
+page with **a tab per search**, photo thumbnails, the seller's location, driving
+distance from your door and a direct link. Always the same path, so bookmark it
+once and refresh; the tab you were on is remembered.
 
 ## Why not just use the marketplace's own filters?
 
@@ -88,7 +94,8 @@ bin directory already on your PATH; override with `DEAL_BIN_DIR=/somewhere`.
 ./run.sh history olx:1089311360   # price history of a single offer
 ./run.sh rescore                  # recompute scores after editing a profile (offline)
 ./run.sh reset                    # wipe collected offers and start fresh
-./run.sh profiles                 # list available profiles
+./run.sh profiles                 # list available searches
+./run.sh report                   # rebuild the combined report (offline)
 ./test.sh                         # run the test suite (offline)
 ```
 
@@ -219,6 +226,14 @@ cached on a coordinate grid, so a run costs a handful of requests. Amusingly, OS
 *rejects* the browser-impersonating client that OLX *requires*, so that call
 deliberately uses plain `urllib`.
 
+**Scoring treats silence honestly.** A dimension that cannot be determined drops
+out of the weight normalisation instead of scoring low, so a terse listing is not
+punished for being terse — which matters because extraction is regex over
+inflected Polish and *will* miss things. The score then regresses toward a neutral
+prior in proportion to what is unknown, so a near-empty listing cannot top the
+ranking either. What you get instead is a confidence figure: `confidence 48% ->
+94 blended toward 55 = 74`.
+
 **Storage** stores each offer once and appends a new *version* row only when
 `sha256(price | title | description)` changes. That single mechanism gives you
 deduplication, new-offer detection, price-change detection and full price history
@@ -227,16 +242,20 @@ at the same time.
 ## Project structure
 
 ```
-config/profiles/     what a good deal means (YAML, tune here)
-src/dealhunter/
-  sources/           marketplace adapters      -> add Allegro here
-  normalize/         free text -> attributes   -> add a product category here
-  scoring/           attributes -> 0-100 score
-  storage/           SQLite schema, dedup, change detection
-  report/            console + HTML output
-  pipeline.py        the only module that knows the full sequence
-tests/               24 offline tests
-docs/extending.md    how to add a source, category, LLM enricher, notifications
+config/profiles/       one file per search (gravel, mtb, ...) - pure YAML
+domains/bikes/
+  domain.yml           what a bike is: extraction rules, scoring dimensions, value model
+  lookups/geometry.yml reference table: model generation -> real reach/stack
+  hooks.py             optional escape hatch, only for what YAML cannot express
+src/dealhunter/        the engine - knows nothing about any product
+  sources/             marketplace adapters      -> add Allegro here
+  normalize/engine.py  declarative extraction    -> driven by a domain pack
+  scoring/engine.py    declarative scoring       -> driven by a domain pack
+  storage/             SQLite schema, dedup, change detection
+  report/              console + tabbed HTML output
+  pipeline.py          the only module that knows the full sequence
+tests/                 64 offline tests
+docs/extending.md      how to add a search, product type, source or enricher
 ```
 
 ## Roadmap
@@ -251,7 +270,6 @@ layer (details in [docs/extending.md](docs/extending.md)):
 - [ ] Allegro and other marketplaces
 - [ ] Notifications and scheduled runs
 - [ ] MCP server so Claude or ChatGPT can query your findings
-- [ ] English UI (output is currently Polish, matching the marketplace)
 
 ## Honest limitations
 

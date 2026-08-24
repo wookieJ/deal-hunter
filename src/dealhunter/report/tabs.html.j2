@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deal Hunter</title>
+<style>
+  :root { color-scheme: light dark;
+    --bg:#f6f7f9; --card:#fff; --fg:#16181d; --muted:#666c7a; --line:#e3e6ea;
+    --good:#0a7d32; --mid:#a86b00; --bad:#a12727; --link:#1a56c4; --new:#0a7d32; --chg:#0b6b86; }
+  @media (prefers-color-scheme: dark) { :root {
+    --bg:#111318; --card:#1a1d24; --fg:#e6e8ec; --muted:#9aa2b1; --line:#2a2f3a;
+    --good:#4ec97a; --mid:#e0aa3e; --bad:#f0736f; --link:#7aa7ff; --new:#4ec97a; --chg:#5cc4e0; } }
+  *{box-sizing:border-box} body{margin:0;padding:24px;background:var(--bg);color:var(--fg);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:32px 0 12px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px}
+  .stat b{display:block;font-size:22px} .stat span{font-size:12px;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px;margin-bottom:12px;display:flex;gap:14px}
+  .thumb{width:180px;height:135px;flex:0 0 180px;object-fit:cover;border-radius:8px;background:var(--line)}
+  .body{min-width:0;flex:1}
+  .title{font-weight:600;margin-bottom:6px} .title a{color:var(--fg);text-decoration:none}
+  .title a:hover{color:var(--link);text-decoration:underline}
+  .specs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .chip{background:var(--bg);border:1px solid var(--line);border-radius:999px;
+    padding:2px 10px;font-size:12px}
+  .score{float:right;font-size:20px;font-weight:700;margin-left:12px}
+  .good{color:var(--good)} .mid{color:var(--mid)} .bad{color:var(--bad)}
+  .verdict{margin:6px 0;font-size:14px}
+  .reasons{color:var(--muted);font-size:12px;margin-top:6px}
+  .badge{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600;
+    border:1px solid currentColor;margin-right:6px}
+  .b-new{color:var(--new)} .b-chg{color:var(--chg)}
+  .price{font-weight:700} .muted{color:var(--muted);font-size:12px}
+  .dist{border-color:var(--link);color:var(--link)}
+  .link{margin-top:4px;font-size:12px;word-break:break-all}
+  .link a{color:var(--link);text-decoration:none} .link a:hover{text-decoration:underline}
+  @media(max-width:640px){.card{flex-direction:column}.thumb{width:100%;flex:none;height:200px}}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:18px}
+  .tab{appearance:none;border:1px solid var(--line);border-bottom:none;background:var(--bg);
+    color:var(--muted);padding:9px 16px;border-radius:10px 10px 0 0;cursor:pointer;font:inherit;
+    font-size:14px;position:relative;top:1px}
+  .tab:hover{color:var(--fg)}
+  .tab[aria-selected="true"]{background:var(--card);color:var(--fg);font-weight:600;
+    border-bottom:1px solid var(--card)}
+  .tab .count{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;
+    background:var(--line);font-size:11px;font-weight:600}
+  .tab .count.fresh{background:var(--good);color:var(--card)}
+  .panel[hidden]{display:none}
+  .empty{color:var(--muted);padding:24px 0}
+</style></head><body><div class="wrap">
+
+<h1>Deal Hunter</h1>
+<div class="sub">{{ generated }}</div>
+
+<div class="tabs" role="tablist">
+  {% for t in tabs %}
+  <button class="tab" role="tab" id="tab-{{ loop.index }}" aria-controls="panel-{{ loop.index }}"
+          aria-selected="{{ 'true' if loop.first else 'false' }}">{{ t.name }}
+    {% if t.stats.new %}<span class="count fresh">+{{ t.stats.new }}</span>
+    {% else %}<span class="count">{{ t.stats.offers }}</span>{% endif %}
+  </button>
+  {% endfor %}
+</div>
+
+{% macro card(o, badge='') %}
+<div class="card">
+  {% if o.photos %}<img class="thumb" src="{{ o.photos[0] }}" alt="" loading="lazy">
+  {% else %}<div class="thumb"></div>{% endif %}
+  <div class="body">
+    <div class="score {{ 'good' if o.value >= 80 else 'mid' if o.value >= 60 else 'bad' }}">
+      {{ o.value }}<span class="muted">/100</span></div>
+    <div class="title">
+      {% if badge %}<span class="badge b-{{ badge }}">{{ 'NEW' if badge == 'new' else 'CHANGED' }}</span>{% endif %}
+      <a href="{{ o.url }}" target="_blank" rel="noopener">{{ o.title }}</a></div>
+    <div class="specs">
+      <span class="chip price">{{ '%d PLN'|format(o.price) if o.price else 'no price' }}</span>
+      <span class="chip">{{ o.size_label }}</span>
+      {% if o.attrs.groupset %}<span class="chip">{{ o.attrs.groupset }}</span>{% endif %}
+      {% if o.attrs.brakes %}<span class="chip">{{ o.attrs.brakes }}</span>{% endif %}
+      {% if o.attrs.frame_material %}<span class="chip">{{ o.attrs.frame_material }}</span>{% endif %}
+      {% if o.attrs.model_year %}<span class="chip">{{ o.attrs.model_year }}</span>{% endif %}
+      {% if o.drive_km %}<span class="chip dist">{{ '~' if o.drive_estimated }}{{ o.drive_km }} km by car{% if o.drive_min %} &middot; {{ o.drive_min }} min{% endif %}</span>{% endif %}
+    </div>
+    {% if o.changes %}<div class="verdict"><b class="b-chg">{{ o.changes|join(' &middot; ')|safe }}</b></div>{% endif %}
+    <div class="verdict">{{ o.verdict }}</div>
+    <div class="muted">📍 {{ o.location or 'lokalizacja nieznana' }}
+      &middot; {{ 'business' if o.is_business else 'private' }}
+      {%- if o.drive_km %} &middot; {{ '~' if o.drive_estimated }}{{ o.drive_km }} km from home{% endif %}</div>
+    <div class="link"><a href="{{ o.url }}" target="_blank" rel="noopener">{{ o.url }}</a></div>
+    <div class="reasons">{{ o.reasons|join(' &nbsp;|&nbsp; ')|safe }}</div>
+  </div>
+</div>
+{% endmacro %}
+
+{% for t in tabs %}
+<section class="panel" role="tabpanel" id="panel-{{ loop.index }}"
+         aria-labelledby="tab-{{ loop.index }}" {{ '' if loop.first else 'hidden' }}>
+  <div class="stats">
+    <div class="stat"><b>{{ t.stats.found or 0 }}</b><span>found</span></div>
+    <div class="stat"><b>{{ t.stats.seen or 0 }}</b><span>already known</span></div>
+    <div class="stat"><b class="good">{{ t.stats.new or 0 }}</b><span>new</span></div>
+    <div class="stat"><b>{{ t.stats.changed or 0 }}</b><span>changed</span></div>
+    <div class="stat"><b class="muted">{{ t.stats.rejected or 0 }}</b><span>rejected</span></div>
+  </div>
+  <div class="muted" style="margin-bottom:14px">source: {{ t.source }}
+    {%- if t.last_run %} &middot; last run: {{ t.last_run[:16].replace('T', ' ') }}{% endif %}</div>
+
+  {% if t.changed %}<h2>Changes to known offers ({{ t.changed|length }})</h2>
+  {% for o in t.changed %}{{ card(o, 'chg') }}{% endfor %}{% endif %}
+
+  {% if t.new %}<h2>New offers ({{ t.new|length }})</h2>
+  {% for o in t.new %}{{ card(o, 'new') }}{% endfor %}{% endif %}
+
+  <h2>Best offers ({{ t.top|length }})</h2>
+  {% if t.top %}{% for o in t.top %}{{ card(o) }}{% endfor %}
+  {% else %}<div class="empty">Nothing scored yet for this search. Run <code>deal run -p {{ t.name }}</code>.</div>{% endif %}
+</section>
+{% endfor %}
+
+<script>
+// Tabs remember the last one you looked at, so refreshing after a run keeps you
+// where you were instead of throwing you back to the first search.
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function show(index) {
+    tabs.forEach(function (tab, i) {
+      var selected = i === index;
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+      document.getElementById('panel-' + (i + 1)).hidden = !selected;
+    });
+    try { localStorage.setItem('dealhunter-tab', tabs[index].textContent.trim()); } catch (e) {}
+  }
+  tabs.forEach(function (tab, i) { tab.addEventListener('click', function () { show(i); }); });
+  try {
+    var saved = localStorage.getItem('dealhunter-tab');
+    var found = tabs.findIndex(function (t) { return t.textContent.trim() === saved; });
+    if (found > -1) { show(found); }
+  } catch (e) {}
+})();
+</script>
+</div></body></html>

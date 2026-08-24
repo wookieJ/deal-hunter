@@ -16,6 +16,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allegro source adapter
 - Desktop notifications and scheduled runs
 
+## [0.4.0] - 2026-08-24
+
+### Changed
+- **The engine no longer knows anything about bikes.** Brands, groupsets, brake
+  types, frame-size patterns, market values and every scoring dimension moved out of
+  Python into a domain pack, `domains/bikes/`. Extraction and scoring are now
+  declarative types executed against that pack, so a new product type is a directory
+  of YAML and a new search is a single YAML file. `domains/<name>/hooks.py` remains
+  as an escape hatch for what YAML cannot express.
+- **Unknown is no longer scored as bad.** Dimensions that cannot be determined drop
+  out of the weight normalisation rather than taking a low default, so a terse
+  listing is not punished for being terse. This matters doubly because extraction is
+  regex over inflected Polish, where a missed pattern is common and should cost
+  nothing beyond uncertainty.
+- **The report is one page with a tab per search**, at the stable path
+  `reports/index.html`, replacing one file per profile. The selected tab is
+  remembered between refreshes.
+- All user-facing output is English. The Polish regexes in the bikes domain are
+  untouched: they parse Polish listings, and translating them would break extraction.
+
+### Added
+- `config/profiles/mtb.yml`, a second search written purely in YAML, as proof that
+  no code is needed for a new one.
+- `deal report` to rebuild the combined report offline.
+- A confidence figure on every score, reported rather than folded into the number.
+- `penalties:` in a profile for signals that deserve a nudge rather than a rejection.
+
+### Fixed
+- Pure renormalisation let 22% of the weight decide 100% of the score, so a
+  near-empty listing reached 94/100 — the mirror image of punishing sparse listings.
+  Scores now regress toward `unknown_prior` in proportion to what is unknown.
+- `SCORING_VERSION` is part of the profile fingerprint. Changing the scorer's output
+  used to leave stored scores stale, because the fingerprint covered the rules but
+  not the code that renders them.
+
 ## [0.3.0] - 2026-08-24
 
 ### Added

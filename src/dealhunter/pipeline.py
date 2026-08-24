@@ -124,12 +124,40 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
             stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
             archive = report_dir / f"{profile['name']}_{stamp}.html"
             archive.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
-        stats["report_path"] = path
+        index = build_index(repo, settings, report_dir,
+                            current={"name": profile["name"], "stats": stats,
+                                     "new": new_offers, "changed": changed_offers})
+        stats["report_path"] = index
         if not quiet:
-            print(f"\nHTML report: {path}")
+            print(f"\nHTML report: {index}")
 
     conn.close()
     return stats
+
+
+def build_index(repo: Repo, settings: dict[str, Any], report_dir: Path,
+                current: dict[str, Any] | None = None) -> Path:
+    """One report with a tab per search, so every profile shares a single link."""
+    top_n = settings.get("report", {}).get("top_n", 15)
+    travel = TravelEstimator(repo.conn, settings, settings.get("home"))
+
+    tabs: list[dict[str, Any]] = []
+    for row in repo.profiles_with_data():
+        name = row["profile"]
+        is_current = bool(current and current["name"] == name)
+        stats = dict(row)
+        if is_current:
+            stats.update(current["stats"])
+        top = repo.top(name, limit=top_n)
+        new = current["new"] if is_current else []
+        changed = current["changed"] if is_current else []
+        travel.annotate(top, new, changed)
+        tabs.append({"name": name, "source": row["source"] or "olx", "stats": stats,
+                     "last_run": row["last_run"], "top": top, "new": new, "changed": changed})
+
+    # Keep the freshly run search first, then the rest alphabetically.
+    tabs.sort(key=lambda t: (not (current and t["name"] == current["name"]), t["name"]))
+    return html.render_tabs(report_dir / "index.html", tabs)
 
 
 def prepare(profile: dict[str, Any], settings: dict[str, Any]) -> tuple[str, dict[str, Any]]:
