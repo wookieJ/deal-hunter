@@ -43,6 +43,11 @@ class TestValueModel(unittest.TestCase):
     def test_missing_price_is_handled(self):
         self.assertEqual(value.bargain(None, {"groupset_tier": 60}, SPEC), (0.0, ""))
 
+    def test_without_a_domain_value_model_nothing_is_estimated(self):
+        """The engine supplies no prices of its own; silence beats guessing."""
+        self.assertIsNone(value.estimate({"groupset_tier": 90}))
+        self.assertEqual(value.bargain(1000, {"groupset_tier": 90}), (0.0, ""))
+
 
 if __name__ == "__main__":
     unittest.main()

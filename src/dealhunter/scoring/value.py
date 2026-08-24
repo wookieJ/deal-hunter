@@ -1,58 +1,44 @@
-"""Rough market-value estimate for a used bike, used to spot genuine bargains.
+"""Rough market-value estimate, used to spot genuine bargains.
 
-This is a heuristic, not comparable-sales data: it prices the spec (groupset tier,
-frame material, brakes, age, condition) against typical Polish second-hand levels.
-It is good enough to answer "is this cheap for what it is?" - which is the question
-that separates a real deal from a merely well-equipped, fully-priced bike - but it
-should never be read as an appraisal.
+Entirely driven by the domain's `value_model` block: a quality tier maps to a
+base price, categorical attributes scale it, and age discounts it. The engine
+supplies no defaults of its own - without a value model there is nothing to
+compare an asking price against, so no estimate is made and no bargain bonus is
+awarded. Guessing would be worse than staying silent.
 
-Replacing this with real reference prices computed from listing_version history is
-the natural next step; the interface would not change.
+This is a heuristic, not comparable-sales data. It answers "is this cheap for
+what it is?", never "what is this worth?". Replacing it with reference prices
+computed from `listing_version` history is the natural next step, and would not
+change this interface.
 """
 from __future__ import annotations
 
 from typing import Any
 
-# Typical Polish used-market asking price for a gravel bike with an aluminium
-# frame, disc brakes and this groupset tier, in good condition.
-TIER_BASE = [
-    (90, 6000),   # GRX 800/820, Force, Ultegra, Dura-Ace
-    (75, 4200),   # GRX 600, GRX, 105, Rival, Deore XT
-    (60, 3200),   # GRX 400, Tiagra, Apex, SLX
-    (45, 2500),   # Deore, CUES, NX, microSHIFT
-    (0, 1900),    # Sora, Claris, Altus, Tourney
-]
-UNKNOWN_GROUPSET_BASE = 2500
-
-MATERIAL_FACTOR = {"carbon": 1.6, "titanium": 1.8, "cromoly": 1.05,
-                   "steel": 0.95, "aluminium": 1.0}
-BRAKE_FACTOR = {"hydraulic_disc": 1.10, "mechanical_disc": 1.0, "disc": 1.03, "rim": 0.82}
-CONDITION_FACTOR = {"nowe": 1.30, "jak nowe": 1.15, "odnowione": 1.0,
-                    "używane": 1.0, "uzywane": 1.0, "uszkodzone": 0.5}
-
 
 def estimate(attrs: dict[str, Any], spec: dict[str, Any] | None = None,
              current_year: int = 2026) -> float | None:
-    """Estimated fair asking price, or None when we know too little.
+    """Estimated fair asking price, or None when the domain declares no model."""
+    if not spec or not spec.get("base_by_tier"):
+        return None
 
-    Driven entirely by the domain's `value_model` block, so a new product type
-    prices its own spec without touching this file.
-    """
-    spec = spec or {}
-    tier = attrs.get(spec.get("tier_attr", "groupset_tier"))
+    tier = attrs.get(spec["tier_attr"]) if spec.get("tier_attr") else None
     if tier is None:
-        base = spec.get("unknown_base", UNKNOWN_GROUPSET_BASE)
+        base = spec.get("unknown_base")
+        if base is None:
+            return None
     else:
-        table = spec.get("base_by_tier") or TIER_BASE
-        base = next((price for threshold, price in table if tier >= threshold),
-                    spec.get("unknown_base", UNKNOWN_GROUPSET_BASE))
+        base = next((price for threshold, price in spec["base_by_tier"] if tier >= threshold),
+                    spec.get("unknown_base"))
+        if base is None:
+            return None
 
     value = float(base)
     for attr, factors in (spec.get("factors") or {}).items():
         value *= factors.get((attrs.get(attr) or "").lower(), 1.0)
 
     age_cfg = spec.get("age")
-    year = attrs.get(spec.get("year_attr", "model_year"))
+    year = attrs.get(spec["year_attr"]) if spec.get("year_attr") else None
     if age_cfg and year:
         age = max(0, current_year - year)
         for max_age, factor in age_cfg.get("bands", []):
@@ -66,7 +52,7 @@ def estimate(attrs: dict[str, Any], spec: dict[str, Any] | None = None,
 
 def bargain(price: float | None, attrs: dict[str, Any],
             spec: dict[str, Any] | None = None) -> tuple[float, str]:
-    """Points to add for a price well below the spec's market level (or subtract above it)."""
+    """Points for a price well below the spec's market level, or a nudge above it."""
     fair = estimate(attrs, spec)
     if not price or not fair:
         return 0.0, ""

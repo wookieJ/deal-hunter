@@ -56,21 +56,15 @@ def offers(items: list[dict[str, Any]], heading: str, show_reasons: bool = True)
         return
     print(f"\n{B}--- {heading} ---{R}")
     for i, it in enumerate(items, 1):
-        a = it.get("attrs", {})
         colour = _colour(it["value"])
         price = f"{it['price']:.0f} PLN" if it.get("price") else "no price"
-        size = (f"{a['frame_size_cm']} cm" if a.get("frame_size_cm")
-                else a.get("frame_size_letter") or a.get("frame_size_raw") or "size ?")
+        summary = "   ".join(it.get("summary_fields") or [])
 
         print(f"\n{B}{i:2}. {it['title'][:70]}{R}")
-        print(f"    {colour}{B}score {it['value']}/100{R}   {B}{price}{R}   {size}"
-              f"   {a.get('groupset') or 'groupset ?'}")
+        print(f"    {colour}{B}score {it['value']}/100{R}   {B}{price}{R}   {summary}")
         meta = [it.get("location") or "", _distance(it),
                 "business" if it.get("is_business") else "private"]
-        if a.get("brakes"):
-            meta.append(a["brakes"])
-        if a.get("frame_material"):
-            meta.append(a["frame_material"])
+        meta.extend(it.get("chip_fields") or [])
         print(f"    {DIM}{' | '.join(filter(None, meta))}{R}")
         print(f"    {it.get('verdict', '')}")
         if show_reasons and it.get("reasons"):

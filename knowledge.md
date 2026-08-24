@@ -19,7 +19,7 @@ rewrite.
 | Owner | wookieJ |
 | Status | Active |
 | Tags | `deal-hunter`, `olx`, `scraping`, `bikes`, `scoring`, `sqlite`, `python` |
-| Current focus | v0.4: generic engine + YAML domain packs; searches need no code |
+| Current focus | v0.5: engine fully product-agnostic; keyword rules; second domain (laptops) |
 | Next action | Populate `domains/bikes/lookups/geometry.yml` beyond Merida Silex from manufacturer charts |
 | Main output | `./run.sh run` -> console summary + `reports/gravel_latest.html` |
 
@@ -63,6 +63,9 @@ rewrite.
 | 2026-08-24 | Search area and home address kept separate | One field cannot serve both: the search area is where to hunt (a search parameter), home is where the owner lives (report distances only) | `search.<source>.area` narrows the hunt and the 1000-cap; `proximity_to` picks the scoring anchor |
 | 2026-08-24 | Personal values in gitignored `*.local.yml` overrides | Repo is public; home coordinates, height, inseam and budget are all personal | Tracked `settings.yml` and `profiles/gravel.yml` are examples; local files deep-merge over them; tests pin `use_local=False` so CI is deterministic |
 | 2026-08-24 | Report written to one stable path, overwritten each run | A per-run filename cannot be bookmarked and accumulates copies of a view only interesting in its latest state | `reports/<profile>_latest.html`; dated archives opt-in via `report.keep_dated_copies` |
+| 2026-08-24 | Keyword rules (`rules:`) as the short path to a score | Declarative dimensions needed an extractor plus a dimension just to say 'nvidia is good' | One YAML line; works in a domain pack or a single profile |
+| 2026-08-24 | Product knowledge purged from reporters and value model | Reporters read `frame_size_cm`/`groupset` directly; `value.py` defaulted to `groupset_tier` with bike prices baked in | `display:` block per domain; a test walks engine source and fails on leakage |
+| 2026-08-24 | No domain `value_model` means no estimate at all | Engine defaults would be a guess dressed as data | Bargain bonus simply does not fire |
 | 2026-08-24 | Engine split from YAML domain packs | Tool was a bike script with an engine attached; new product types required code | `domains/<name>/` carries extraction + scoring; new search = one YAML file |
 | 2026-08-24 | Unknown dimensions leave the weight normalisation | Sparse listings were scored as if features were absent - grading the description, not the product; regex over inflected Polish misses things routinely | A miss now costs certainty, not points |
 | 2026-08-24 | Low confidence regresses toward a neutral prior | Renormalisation alone let 22% of weight set 100% of score; an empty listing hit 94/100 | `unknown_prior` in the domain; confidence reported in every score |
@@ -101,7 +104,7 @@ trekking 1653, city 1650, electric 1649, folding 4243, kids 1681, all bikes 461.
 | `./run.sh history olx:<id>` | Price history of one offer | |
 | `./run.sh rescore` | Recompute scores after a profile edit | Offline, uses archived payloads |
 | `./run.sh reset` | Wipe collected offers | Keeps `travel_cache` unless `--all` |
-| `./test.sh` | 63 unit tests | Extraction, scoring, geometry, value, dedup |
+| `./test.sh` | 76 unit tests | Extraction, scoring, rules, geometry, value, dedup, engine purity |
 
 ## Dependencies And External Services
 

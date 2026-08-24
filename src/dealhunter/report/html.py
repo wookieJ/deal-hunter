@@ -13,18 +13,9 @@ _ENV = Environment(
 )
 
 
-def _size_label(attrs: dict[str, Any]) -> str:
-    if attrs.get("frame_size_cm"):
-        return f"frame {attrs['frame_size_cm']} cm"
-    if attrs.get("frame_size_letter"):
-        return f"frame {attrs['frame_size_letter']}"
-    return attrs.get("frame_size_raw") or "size ?"
-
-
 def _prepare(*groups: list[dict]) -> None:
-    for group in groups:
-        for offer in group:
-            offer["size_label"] = _size_label(offer.get("attrs", {}))
+    """Display fields are attached upstream by report.display, which reads the
+    domain's own `display:` block - the reporter stays product-agnostic."""
 
 
 def render(path: Path, profile: str, source: str, stats: dict[str, Any],

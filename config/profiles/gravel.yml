@@ -6,7 +6,7 @@
 # over this file. You only need to override the keys you want to change:
 #
 #   preferences:
-#     rider:  { height_cm: 000, inseam_cm: 00 }
+#     frame_size: { ideal_reach_mm: [000, 000] }   # derived from your height/inseam
 #     budget: { target: 0000, comfortable_max: 0000, soft_max: 0000, hard_max: 0000 }
 #   search:
 #     olx:
@@ -36,9 +36,6 @@ search:
       radius_km: 100
 
 preferences:
-  rider:
-    height_cm: 178          # example - override in gravel.local.yml
-    inseam_cm: 82           # example - override in gravel.local.yml
 
   # Budget is applied as a MULTIPLIER on the spec score, not as one weighted
   # dimension among many. That is what stops a 5000 PLN bike from winning purely
@@ -89,7 +86,6 @@ preferences:
   preferred_models: [silex]           # comfortable geometry reference
 
   required: []
-  nice_to_have: [hydraulic_disc, carbon_fork, through_axle, tubeless, "1x_drivetrain"]
   disqualifying: [parts_only, frame_damage, kids_bike, ebike, wrong_category,
                   flatbar, fitness_bike]   # flat-bar hybrids are a different bike
 

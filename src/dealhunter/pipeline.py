@@ -10,10 +10,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from . import config
+from . import config, domains
 from .models import Attributes, RawListing
 from .normalize.base import get_normalizer
-from .report import console, html
+from .report import console, display, html
 from .scoring.base import get_scorer
 from .sources.base import get_source
 from .sources.olx import archive_raw
@@ -93,6 +93,8 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
     new_offers = repo.top(profile["name"], limit=top_n, uids=new_uids)
     changed_offers = _attach_changes(repo, profile["name"], changed_items)
     best = repo.top(profile["name"], limit=top_n)
+    for group in (new_offers, changed_offers, best):
+        display.annotate(group, domain)
 
     # Travel distance is always measured from where the user lives, which is a
     # setting - never from the profile's search area.
@@ -152,6 +154,12 @@ def build_index(repo: Repo, settings: dict[str, Any], report_dir: Path,
         new = current["new"] if is_current else []
         changed = current["changed"] if is_current else []
         travel.annotate(top, new, changed)
+        try:
+            tab_domain = config.load_profile(name).get("domain", "bikes")
+        except FileNotFoundError:
+            tab_domain = "bikes"     # a profile whose file was deleted still has stored offers
+        for group in (top, new, changed):
+            display.annotate(group, tab_domain)
         tabs.append({"name": name, "source": row["source"] or "olx", "stats": stats,
                      "last_run": row["last_run"], "top": top, "new": new, "changed": changed})
 
@@ -161,7 +169,20 @@ def build_index(repo: Repo, settings: dict[str, Any], report_dir: Path,
 
 
 def prepare(profile: dict[str, Any], settings: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    """Resolve the search spec and reconcile the two locations before scoring."""
+    """Fill in the domain's defaults, then reconcile the two locations.
+
+    A domain declares which preference keys its dimensions read and what they
+    default to, so a profile only states what it actually wants to change - and
+    a profile for one domain is not expected to know another domain's vocabulary.
+    """
+    pack = domains.load(profile.get("domain", "bikes"))
+    schema = pack.get("profile_schema") or {}
+
+    prefs = profile.setdefault("preferences", {})
+    profile["preferences"] = config.deep_merge(schema.get("defaults") or {}, prefs)
+    if pack.get("default_weights"):
+        profile["weights"] = config.deep_merge(pack["default_weights"], profile.get("weights") or {})
+
     source_name = next(iter(profile["search"]))
     spec = profile["search"][source_name]
     config.resolve_location_anchor(profile, settings, spec)

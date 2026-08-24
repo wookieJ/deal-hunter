@@ -5,7 +5,7 @@ import argparse
 import sys
 
 from . import config, pipeline
-from .report import console
+from .report import console, display
 from .storage.db import connect
 from .storage.repo import Repo
 from .travel import TravelEstimator
@@ -57,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         repo = _open_repo(settings)
         rows = repo.top(args.profile, args.limit, include_disqualified=args.all)
         TravelEstimator(repo.conn, settings, settings.get("home")).annotate(rows)
+        display.annotate(rows, config.load_profile(args.profile).get("domain", "bikes"))
         console.offers(rows, f"Best offers ({args.profile})")
     elif args.command == "history":
         repo = _open_repo(settings)

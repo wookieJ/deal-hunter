@@ -20,6 +20,7 @@ being smuggled into the score.
 from __future__ import annotations
 
 import math
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -50,6 +51,7 @@ class Engine:
         self.domain = domain
         self.spec = domains.load(domain)
         self.category = self.spec.get("name", domain)
+        self._negation = re.compile(self.spec["negation"]) if self.spec.get("negation") else None
 
     # ------------------------------------------------------------------ public
     def score(self, attrs: Attributes, raw: RawListing, profile: dict[str, Any]) -> ScoreResult:
@@ -59,7 +61,8 @@ class Engine:
         dimensions = {**(self.spec.get("dimensions") or {}),
                       **(profile.get("dimensions") or {})}
 
-        blocked = self._disqualify(attrs, raw, prefs)
+        rule_points, rule_reasons, rule_block = self._keyword_rules(raw, prefs)
+        blocked = rule_block or self._disqualify(attrs, raw, prefs)
         if blocked:
             return ScoreResult(0, f"Rejected: {blocked}", [f"DISQUALIFIED: {blocked}"],
                                disqualified=True, disqualified_by=blocked)
@@ -104,6 +107,8 @@ class Engine:
 
         extra, extra_reasons = self._extras(attrs, raw, prefs, bonuses)
         reasons.extend(extra_reasons)
+        extra += rule_points
+        reasons.extend(rule_reasons)
 
         value = max(0, min(100, round(spec_score * budget_fit + extra)))
         return ScoreResult(value, self._verdict(value, attrs, raw, budget_fit, confidence), reasons)
@@ -284,6 +289,47 @@ class Engine:
             return Result(source.get("out_of_range_score", 0.25) * cap,
                           f"{source['label']} {text} ({source['poor_note']})")
         return None
+
+    # ---------------------------------------------------------- keyword rules
+    def _affirmative(self, haystack: str, pattern: str) -> bool:
+        """True only where the pattern appears somewhere that is not negated."""
+        for m in re.finditer(pattern, haystack, re.IGNORECASE):
+            window = haystack[max(0, m.start() - 45):m.start()]
+            if not self._negation or not self._negation.search(window):
+                return True
+        return False
+
+    def _keyword_rules(self, raw: RawListing, prefs: dict) -> tuple[float, list[str], str]:
+        """Plain "if these words appear, move the score" rules.
+
+        The declarative dimensions are worth the ceremony for numbers and tiers,
+        but most of what you want to say about a new kind of product is simply
+        "mentioning nvidia is good, mentioning water damage is not". These rules
+        are that, and they can live in a domain pack or in a single profile - so
+        a one-off search can add its own without touching the domain.
+        """
+        total, reasons, blocked = 0.0, [], ""
+        rules = list(self.spec.get("rules") or []) + list(prefs.get("rules") or [])
+
+        for rule in rules:
+            scope = rule.get("scope", "all")
+            haystack = {"title": raw.title, "description": raw.description}.get(scope, raw.text)
+            patterns = rule.get("any") or ([rule["match"]] if rule.get("match") else [])
+            hit = any(self._affirmative(haystack.lower(), p.lower()) for p in patterns)
+
+            if rule.get("require") and not hit:
+                blocked = blocked or rule.get("note") or f"missing required: {rule.get('name', '?')}"
+                continue
+            if not hit:
+                continue
+            if rule.get("reject"):
+                blocked = blocked or rule.get("note") or rule.get("name", "rejected by rule")
+                continue
+            points = float(rule.get("points", 0))
+            if points:
+                total += points
+                reasons.append(f"{points:+.0f} {rule.get('note') or rule.get('name', 'keyword match')}")
+        return total, reasons, blocked
 
     # ------------------------------------------------------------ hard gates
     def _disqualify(self, attrs: Attributes, raw: RawListing, prefs: dict) -> str:

@@ -31,9 +31,44 @@ weights:     { size: 28, groupset: 24, features: 18, condition: 12, location: 10
 
 Then `deal run -p mtb`. It gets its own tab in the report.
 
+## The short path: keyword rules
+
+Most of what you want to say about a new kind of product is not a numeric range —
+it is "mentioning this is good, mentioning that is not". That needs no extractor
+and no dimension, just a rule:
+
+```yaml
+rules:
+  - name: dedicated_gpu
+    any: ['nvidia', 'geforce', 'rtx', 'radeon rx']
+    points: 8
+    note: dedicated GPU mentioned
+  - name: overheating
+    any: ['przegrzewa', 'glosny wentylator']
+    points: -8
+    note: thermal complaints
+  - name: liquid_damage
+    any: ['zalan\w*']
+    reject: true
+  - name: must_have_ssd
+    any: ['ssd', 'nvme']
+    require: true          # absent -> rejected
+```
+
+Entries in `any` are regexes, so `i7` works as-is and `zalan\w*` covers Polish
+inflection. `scope:` limits a rule to `title` or `description` (default: both,
+plus marketplace parameters). Negation is handled: "nie zalany" does not fire the
+liquid-damage rule.
+
+Rules can live in a domain pack **or in a single profile** under
+`preferences.rules`, so a one-off search adds its own without touching the domain.
+
+Reach for the declarative dimensions below only when a rule is not enough —
+numeric ranges, quality tiers and reference-table lookups genuinely need them.
+
 ## Add a new product type
 
-Copy `domains/bikes/` and rewrite `domain.yml`. Its three parts:
+Copy `domains/bikes/` or `domains/laptops/` and rewrite `domain.yml`. Both are real, working packs that share no vocabulary and no code. Its three parts:
 
 **1. `extract:`** — how to turn free text into attributes. Each rule names a type:
 
@@ -65,6 +100,22 @@ A dimension setting can be redirected into the profile with `<key>_from: some.pa
 so the domain defines the *mechanism* and the profile supplies *your* numbers.
 
 **3. `value_model:`** — a rough market price from the spec, used to spot bargains.
+The engine has no prices of its own: omit this block and no estimate is made and
+no bargain bonus awarded, which is better than guessing.
+
+**4. `display:`** — which attributes the reports show. The engine renders what this
+names and knows nothing else about your product:
+
+```yaml
+display:
+  summary: [{attrs: [cpu], fallback: 'CPU ?'},
+            {attrs: [ram_gb], suffix: {ram_gb: ' GB RAM'}, fallback: 'RAM ?'}]
+  chips: [storage_raw, screen_raw, gpu, model_year]
+```
+
+**5. `profile_schema.defaults:`** and **`default_weights:`** — the preference keys
+your dimensions read and their defaults, merged under whatever a profile sets, so
+profiles stay short and no profile needs to know another domain's vocabulary.
 
 ## Two rules worth respecting
 

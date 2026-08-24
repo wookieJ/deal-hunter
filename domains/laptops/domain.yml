@@ -1,0 +1,473 @@
+# Domain pack: laptops. Nothing here is shared with the bikes pack, and no
+# Python was written for it - this is what a new product type looks like.
+
+name: laptops
+description: 'Laptops: extraction and scoring for Polish marketplace listings.'
+language_note: Patterns match Polish listing text. They are data, not translations. This pack is a working
+  starter, not an exhaustively tuned model - treat the tiers and prices as a first approximation and adjust.
+negation: '(?:\bbez\b|\bbrak\w*\b|\bnie\s+ma\b|\bnie\b|\b[zż]adn\w*\b)[^.!?;]{0,40}$'
+extract:
+- key: brand
+  type: dictionary
+  param: laptops_brand
+  prefer_title: true
+  param_ignore:
+  - inna
+  - inne
+  - others
+  - other
+  values:
+  - apple
+  - macbook
+  - dell
+  - lenovo
+  - thinkpad
+  - hp
+  - asus
+  - acer
+  - msi
+  - razer
+  - samsung
+  - huawei
+  - microsoft
+  - surface
+  - toshiba
+  - fujitsu
+  - gigabyte
+  - medion
+  - sony
+  - lg
+  - chuwi
+  - framework
+- key: model
+  type: model_after_brand
+  brand_key: brand
+  max_tokens: 3
+  scan_tokens: 4
+  stop_words:
+  - laptop
+  - notebook
+  - sprzedam
+  - stan
+  - gwarancja
+  - okazja
+  - polecam
+  - szt
+  - cali
+  - cal
+  - nowy
+  - uzywany
+  - używany
+  - jak
+- key: cpu
+  type: tiered
+  tier_key: cpu_tier
+  values:
+  - pattern: '\bm4\s*(?:max|ultra)\b'
+    label: Apple M4 Max/Ultra
+    tier: 100
+  - pattern: '\bm3\s*(?:max|ultra)\b'
+    label: Apple M3 Max/Ultra
+    tier: 96
+  - pattern: '\bm4\s*pro\b'
+    label: Apple M4 Pro
+    tier: 95
+  - pattern: '\bm[23]\s*pro\b'
+    label: Apple M2/M3 Pro
+    tier: 90
+  - pattern: '\bm4\b'
+    label: Apple M4
+    tier: 88
+  - pattern: '\bm3\b'
+    label: Apple M3
+    tier: 84
+  - pattern: '\bm2\b'
+    label: Apple M2
+    tier: 78
+  - pattern: '\bm1\s*(?:pro|max)\b'
+    label: Apple M1 Pro/Max
+    tier: 80
+  - pattern: '\bm1\b'
+    label: Apple M1
+    tier: 70
+  - pattern: '\b(?:core\s*)?ultra\s*9\b'
+    label: Intel Core Ultra 9
+    tier: 95
+  - pattern: '\b(?:core\s*)?ultra\s*7\b'
+    label: Intel Core Ultra 7
+    tier: 88
+  - pattern: '\b(?:core\s*)?ultra\s*5\b'
+    label: Intel Core Ultra 5
+    tier: 78
+  - pattern: '\bi9[\s\-]?1[2-9]\d{2,3}'
+    label: Intel i9 (12th gen+)
+    tier: 94
+  - pattern: '\bryzen\s*9\s*[5-9]\d{3}'
+    label: AMD Ryzen 9 (5000+)
+    tier: 93
+  - pattern: '\bi7[\s\-]?1[2-9]\d{2,3}'
+    label: Intel i7 (12th gen+)
+    tier: 86
+  - pattern: '\bryzen\s*7\s*[5-9]\d{3}'
+    label: AMD Ryzen 7 (5000+)
+    tier: 85
+  - pattern: '\bi5[\s\-]?1[2-9]\d{2,3}'
+    label: Intel i5 (12th gen+)
+    tier: 74
+  - pattern: '\bryzen\s*5\s*[5-9]\d{3}'
+    label: AMD Ryzen 5 (5000+)
+    tier: 72
+  - pattern: '\bi9\b'
+    label: Intel i9 (older)
+    tier: 80
+  - pattern: '\bryzen\s*9\b'
+    label: AMD Ryzen 9 (older)
+    tier: 79
+  - pattern: '\bi7\b'
+    label: Intel i7 (older)
+    tier: 66
+  - pattern: '\bryzen\s*7\b'
+    label: AMD Ryzen 7 (older)
+    tier: 65
+  - pattern: '\bi5\b'
+    label: Intel i5 (older)
+    tier: 54
+  - pattern: '\bryzen\s*5\b'
+    label: AMD Ryzen 5 (older)
+    tier: 53
+  - pattern: '\bi3\b|\bryzen\s*3\b'
+    label: Intel i3 / Ryzen 3
+    tier: 38
+  - pattern: '\bceleron\b|\bpentium\b|\bathlon\b|\batom\b'
+    label: Celeron / Pentium
+    tier: 15
+- key: ram_gb
+  type: numeric
+  min: 2
+  max: 128
+  raw_key: ram_raw
+  patterns:
+  - '(?:ram|pami[eę][cć]\w*)[\s:\-]*(\d{1,3})\s*gb'
+  - '\b(\d{1,3})\s*gb\s*(?:ram|ddr)'
+- key: storage_gb
+  type: numeric
+  min: 32
+  max: 8192
+  raw_key: storage_raw
+  patterns:
+  - '(?:ssd|dysk|nvme|hdd)[\s:\-]*(\d{3,4})\s*gb'
+  - '\b(\d{3,4})\s*gb\s*(?:ssd|nvme|dysk)'
+  unit_fallback:
+    pattern: '(?:ssd|dysk|nvme)[\s:\-]*(\d)\s*tb'
+    multiply: 1024
+- key: screen_inch
+  type: numeric
+  min: 10
+  max: 18
+  raw_key: screen_raw
+  patterns:
+  - '\b(1[0-8])[,.]?\d?\s*(?:\"|cali|cala|cal\b|inch)'
+  - '(?:ekran|matryca|przek[aą]tna)[\s:\-]*(1[0-8])'
+- key: gpu
+  type: patterns
+  values:
+  - pattern: '\brtx\s*4[0-9]{3}'
+    label: RTX 40-series
+  - pattern: '\brtx\s*3[0-9]{3}'
+    label: RTX 30-series
+  - pattern: '\brtx\s*2[0-9]{3}'
+    label: RTX 20-series
+  - pattern: '\bgtx\s*1[0-9]{3}'
+    label: GTX 10/16-series
+  - pattern: '\bradeon\s*rx\b'
+    label: Radeon RX
+  - pattern: '\bquadro\b|\brtx\s*a\d'
+    label: Quadro / RTX A
+  - pattern: '\bnvidia\b|\bgeforce\b'
+    label: NVIDIA (unspecified)
+  - pattern: '\bzintegrowan\w*|\biris\b|\buhd\s*graphics\b|\bvega\b|\bintegrated\b'
+    label: integrated
+- key: model_year
+  type: year
+  pattern: '\b(20[0-2]\d)\b'
+  min: 2010
+  max: 2027
+  pick: max
+- key: condition
+  type: param
+  param: state
+flags:
+  ssd: '\bssd\b|\bnvme\b|\bm\.?2\b'
+  dedicated_gpu: '\brtx\b|\bgtx\b|\bradeon\s*rx\b|\bquadro\b|\bdedykowan\w*\s*grafik\w*'
+  touchscreen: '\bdotykow\w*|\btouch\s*screen\b|\btouchscreen\b'
+  backlit_keyboard: '\bpodświetlan\w*\s*klawiat\w*|\bbacklit\b'
+  good_panel: '\bips\b|\boled\b|\bqhd\b|\b2k\b|\b4k\b|\bretina\b'
+  usb_c: '\busb[\s\-]?c\b|\bthunderbolt\b|\btype[\s\-]?c\b'
+  warranty: '\bgwarancj\w*'
+  new_battery: '\bnowa\s*bateria\b|\bwymienion\w*\s*bateri\w*'
+flags_from_attr:
+  gpu:
+    RTX 40-series: dedicated_gpu
+    RTX 30-series: dedicated_gpu
+    RTX 20-series: dedicated_gpu
+    GTX 10/16-series: dedicated_gpu
+    Radeon RX: dedicated_gpu
+    Quadro / RTX A: dedicated_gpu
+disqualifiers:
+  parts_only: '\bna\s*cz[eę][sś]ci\b|\bcz[eę][sś]ci\s*z\s*laptop\w*|\buszkodzon\w*\s*p[lł]yt\w*|\bnie\s*w[lł][aą]cza\s*si[eę]\b|\bnie\s*dzia[lł]a\b|\bdo\s*naprawy\b'
+  no_screen: '\bbez\s*matryc\w*|\bp[eę]kni[eę]t\w*\s*(?:matryc\w*|ekran\w*)|\bzbit\w*\s*ekran\w*'
+  locked: '\bblokada\s*(?:bios|icloud|mdm)\b|\bhas[lł]o\s*bios\b|\bicloud\s*lock\b|\bmdm\b'
+  wrong_category: '\bzamieni[eę]\b|\bkupi[eę]\b|\bposzukuj[eę]\b|\bszukam\b|\bstacjonarn\w*\s*komputer\w*'
+title_disqualifiers:
+  parts_only: '\bna\s*cz[eę][sś]ci\b|\buszkodzon\w*\b'
+  wrong_category: '\bkomputer\s*stacjonarn\w*|\bpc\s*gamingow\w*\s*stacjonarn\w*'
+value_model:
+  tier_attr: cpu_tier
+  year_attr: model_year
+  unknown_base: 1500
+  base_by_tier:
+  - - 90
+    - 6500
+  - - 80
+    - 4500
+  - - 70
+    - 3200
+  - - 60
+    - 2300
+  - - 45
+    - 1600
+  - - 0
+    - 800
+  factors:
+    condition:
+      nowe: 1.3
+      jak nowe: 1.15
+      odnowione: 1.0
+      używane: 1.0
+      uzywane: 1.0
+      uszkodzone: 0.4
+  age:
+    bands:
+    - - 1
+      - 1.15
+    - - 3
+      - 1.0
+    - - 5
+      - 0.8
+    - - 8
+      - 0.6
+    older: 0.4
+unknown_prior: 55
+dimensions:
+  cpu:
+    type: tier
+    attr: cpu_tier
+    label_attr: cpu
+    label: CPU
+    preferred_bonus: 0.08
+    preferred_contains_from: preferred_cpus
+    unknown_note: CPU not stated (not counted against the offer)
+  ram:
+    type: range_chain
+    label: RAM
+    unknown_note: RAM not stated (not counted against the offer)
+    sources:
+    - attr: ram_gb
+      kind: numeric_range
+      label: RAM
+      ideal_from: ram.ideal_gb
+      acceptable_from: ram.acceptable_gb
+      acceptable_score: 0.6
+      out_of_range_score: 0.15
+  storage:
+    type: range_chain
+    label: storage
+    unknown_note: storage not stated (not counted against the offer)
+    sources:
+    - attr: storage_gb
+      kind: numeric_range
+      label: disk
+      ideal_from: storage.ideal_gb
+      acceptable_from: storage.acceptable_gb
+      acceptable_score: 0.6
+      out_of_range_score: 0.2
+  screen:
+    type: range_chain
+    label: screen
+    unknown_note: screen size not stated (not counted against the offer)
+    sources:
+    - attr: screen_inch
+      kind: numeric_range
+      label: screen
+      ideal_from: screen.ideal_inch
+      acceptable_from: screen.acceptable_inch
+      acceptable_score: 0.6
+      out_of_range_score: 0.2
+  features:
+    type: flag_coverage
+    label: features
+    weights:
+      ssd: 0.3
+      good_panel: 0.25
+      usb_c: 0.2
+      backlit_keyboard: 0.15
+      dedicated_gpu: 0.1
+    unknown_note: features not stated (not counted against the offer)
+  condition:
+    type: enum_map
+    attr: condition
+    label: condition
+    default_score: 0.65
+    scores:
+      nowe: 1.0
+      jak nowe: 0.95
+      odnowione: 0.85
+      używane: 0.75
+      uzywane: 0.75
+      uszkodzone: 0.15
+    labels:
+      nowe: new
+      jak nowe: as new
+      odnowione: refurbished
+      używane: used
+      uzywane: used
+      uszkodzone: damaged
+  location:
+    type: distance
+    far_score: 0.4
+    bands:
+    - - 1.0
+      - 1.0
+      - inside search area
+    - - 2.0
+      - 0.75
+      - ''
+    - - 3.5
+      - 0.55
+      - far
+  brand:
+    type: preference_list
+    attr: brand
+    label: brand
+    known_score: 0.7
+    preferred_from: brands.preferred
+    avoid_from: brands.avoid
+    unknown_note: brand not recognised (not counted against the offer)
+reject_rules:
+- attr: ram_gb
+  below_from: ram.reject_below
+  message: '{value} GB RAM is too little'
+- attr: screen_inch
+  below_from: screen.reject_below
+  above_from: screen.reject_above
+  message: '{value}" screen is clearly wrong'
+default_weights:
+  cpu: 26
+  ram: 18
+  storage: 14
+  screen: 12
+  features: 12
+  condition: 10
+  location: 8
+profile_schema:
+  description: Preference keys this domain's dimensions read. Defaults below are merged under whatever
+    a profile sets, so a profile only overrides what it cares about.
+  defaults:
+    ram:
+      ideal_gb:
+      - 16
+      - 64
+      acceptable_gb:
+      - 8
+      - 128
+      reject_below: 7
+    storage:
+      ideal_gb:
+      - 512
+      - 4096
+      acceptable_gb:
+      - 256
+      - 8192
+    screen:
+      ideal_inch:
+      - 14
+      - 16
+      acceptable_inch:
+      - 13
+      - 17
+      reject_below: 10
+      reject_above: 18
+    preferred_cpus: []
+    brands:
+      preferred:
+      - lenovo
+      - dell
+      - hp
+      - apple
+      - asus
+      avoid: []
+verdict_bands:
+- - 85
+  - Very good offer
+- - 70
+  - Good offer
+- - 55
+  - Average offer
+- - 0
+  - Weak offer
+verdict_notes:
+- when_attr: cpu
+  text: '{cpu}'
+  uses:
+  - cpu
+- when_attr: ram_gb
+  text: '{ram_gb} GB RAM'
+  uses:
+  - ram_gb
+verdict_fallback: specification barely stated
+
+display:
+  summary:
+    - attrs: [cpu]
+      fallback: 'CPU ?'
+    - attrs: [ram_gb]
+      suffix: {ram_gb: ' GB RAM'}
+      fallback: 'RAM ?'
+  chips: [storage_raw, screen_raw, gpu, model_year]
+
+# Plain keyword rules: if these words show up, move the score. This is the whole
+# mechanism - no extractor, no dimension, no Python. A profile can add its own
+# `rules:` under preferences for a one-off search.
+rules:
+  - name: dedicated_gpu
+    any: ['nvidia', 'geforce', 'rtx', 'radeon rx']
+    points: 8
+    note: dedicated GPU mentioned
+  - name: strong_cpu
+    any: ['i7', 'i9', 'ryzen 7', 'ryzen 9', 'ultra 7', 'ultra 9']
+    points: 6
+    note: high-end CPU mentioned
+  - name: fast_storage
+    any: ['nvme', 'ssd m.2', 'pcie 4']
+    points: 3
+    note: fast storage
+  - name: premium_panel
+    any: ['oled', 'ips', '\bqhd\b', '\b4k\b', 'retina']
+    points: 3
+    note: good screen mentioned
+  - name: still_under_warranty
+    any: ['gwarancja']
+    points: 3
+    note: warranty mentioned
+  - name: battery_worn
+    any: ['bateria do wymiany', 'zu[zż]yta bateria', 's[lł]aba bateria']
+    points: -6
+    note: worn battery
+  - name: overheating
+    any: ['przegrzewa', 'g[lł]o[sś]ny wentylator']
+    points: -8
+    note: thermal complaints
+  - name: liquid_damage
+    any: ['zalan\w*']
+    reject: true
+    note: liquid damage

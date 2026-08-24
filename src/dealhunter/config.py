@@ -35,11 +35,11 @@ def _load(path: Path) -> dict[str, Any]:
         return yaml.safe_load(fh) or {}
 
 
-def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     merged = dict(base)
     for key, value in override.items():
         if isinstance(value, dict) and isinstance(merged.get(key), dict):
-            merged[key] = _deep_merge(merged[key], value)
+            merged[key] = deep_merge(merged[key], value)
         else:
             merged[key] = value
     return merged
@@ -56,7 +56,7 @@ def load_settings(path: str | Path | None = None) -> dict[str, Any]:
     local = ROOT / "config" / "settings.local.yml"
     if path is None and local.exists():
         with local.open(encoding="utf-8") as fh:
-            settings = _deep_merge(settings, yaml.safe_load(fh) or {})
+            settings = deep_merge(settings, yaml.safe_load(fh) or {})
     return settings
 
 
@@ -77,7 +77,7 @@ def load_profile(name: str, use_local: bool = True) -> dict[str, Any]:
     local = path.with_name(f"{path.stem}.local.yml")
     if use_local and local.exists():
         with local.open(encoding="utf-8") as fh:
-            profile = _deep_merge(profile, yaml.safe_load(fh) or {})
+            profile = deep_merge(profile, yaml.safe_load(fh) or {})
 
     profile.setdefault("name", path.stem)
     return profile
@@ -103,7 +103,7 @@ def resolve(path: str | Path) -> Path:
 # Bump whenever the scorer's logic or the wording of its reasons changes. The
 # profile alone is not enough: translating the output left stored scores with
 # stale text, because the rules that produced them had not changed.
-SCORING_VERSION = 4
+SCORING_VERSION = 5
 
 
 def profile_fingerprint(profile: dict[str, Any]) -> str:

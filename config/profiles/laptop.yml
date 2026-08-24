@@ -1,0 +1,48 @@
+# A search for a completely different product, written only in YAML.
+# Note how short it is: the laptops domain pack supplies the vocabulary, the
+# scoring dimensions and sensible defaults, so this file states only intent.
+name: laptop
+domain: laptops
+description: Example laptop search - a second product type, no code written for it
+
+search:
+  olx:
+    category_id: 1199        # OLX "Laptopy"
+    queries: ["", "thinkpad"]
+    price_from: 800
+    price_to: 4500
+    max_pages: 3
+    sort_by: created_at:desc
+    area:
+      name: Warszawa
+      city_id: 17871
+      lat: 52.2297
+      lon: 21.0122
+      radius_km: 100
+
+preferences:
+  budget:
+    target: 2500
+    comfortable_max: 3000
+    soft_max: 3600
+    hard_max: 4500
+    expensive_floor: 0.68
+
+  location:
+    proximity_to: search_area
+    preferred_radius_km: 100
+
+  # Everything below overrides a default from domains/laptops/domain.yml.
+  ram:
+    ideal_gb: [16, 64]
+    reject_below: 7
+  storage:
+    ideal_gb: [512, 4096]
+  screen:
+    ideal_inch: [14, 16]
+  preferred_cpus: [ryzen, ultra]
+  brands:
+    preferred: [lenovo, thinkpad, dell, hp, apple]
+
+  required: []
+  disqualifying: [parts_only, no_screen, locked, wrong_category]

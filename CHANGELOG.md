@@ -16,6 +16,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allegro source adapter
 - Desktop notifications and scheduled runs
 
+## [0.5.0] - 2026-08-24
+
+### Added
+- **Keyword rules**: `rules:` entries that move the score when words appear, with
+  `points`, `reject` and `require`, an optional `scope`, and the same negation guard
+  used elsewhere ("nie zalany" does not fire a liquid-damage rule). This is the short
+  path the declarative dimensions were missing — saying "mentioning nvidia is good"
+  now takes one line of YAML instead of an extractor plus a dimension. Rules work in
+  a domain pack or in a single profile.
+- **`domains/laptops/`**, a complete second product type built without writing code,
+  plus `config/profiles/laptop.yml`. It shares no vocabulary with the bikes pack.
+- **`display:`** block: a domain declares which attributes the reports show.
+- **`profile_schema.defaults:`** and **`default_weights:`**: a domain declares the
+  preference keys its dimensions read and their defaults, merged under whatever a
+  profile sets, so profiles state only intent.
+
+### Changed
+- **The engine no longer contains any product knowledge at all.** The reporters had
+  been reading `frame_size_cm`, `groupset`, `brakes` and `frame_material` directly,
+  and `value.py` defaulted its tier attribute to `groupset_tier` while carrying a
+  table of bike prices. All of it moved into domain packs. A test now walks the
+  engine source and fails if a product attribute reappears.
+- Without a domain `value_model`, no market estimate is made and no bargain bonus
+  awarded. The engine has no prices of its own; silence beats guessing.
+
+### Removed
+- `preferences.rider` and `preferences.nice_to_have` from the profiles. Nothing read
+  them after the scoring rework — configuration that looks live but is not is worse
+  than none.
+
 ## [0.4.0] - 2026-08-24
 
 ### Changed

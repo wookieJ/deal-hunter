@@ -14,8 +14,25 @@ lives in a **domain pack** of YAML. **Adding a search is one YAML file; adding a
 product type is a directory of them.** No Python required either way — see
 [Extending](docs/extending.md).
 
-Ships with a `bikes` domain and two searches (`gravel`, `mtb`) as worked examples,
-against **OLX**.
+Ships with two real domains — `bikes` and `laptops` — and three searches
+(`gravel`, `mtb`, `laptop`) as worked examples, against **OLX**. The two packs
+share no vocabulary and no code; a test enforces that no product attribute ever
+leaks back into the engine.
+
+Want a keyword to move the score? That is one line of YAML:
+
+```yaml
+rules:
+  - name: dedicated_gpu
+    any: ['nvidia', 'geforce', 'rtx']
+    points: 8
+  - name: liquid_damage
+    any: ['zalan\w*']
+    reject: true
+```
+
+No extractor, no dimension, no Python. Rules work in a domain pack or in a single
+profile, so a one-off search can add its own.
 
 ```
 === Podsumowanie (gravel @ olx) ===
@@ -242,11 +259,12 @@ at the same time.
 ## Project structure
 
 ```
-config/profiles/       one file per search (gravel, mtb, ...) - pure YAML
+config/profiles/       one file per search (gravel, mtb, laptop) - pure YAML
 domains/bikes/
-  domain.yml           what a bike is: extraction rules, scoring dimensions, value model
+  domain.yml           what a bike is: keyword rules, extraction, dimensions, value, display
   lookups/geometry.yml reference table: model generation -> real reach/stack
-  hooks.py             optional escape hatch, only for what YAML cannot express
+domains/laptops/
+  domain.yml           a second product type - no code was written for it
 src/dealhunter/        the engine - knows nothing about any product
   sources/             marketplace adapters      -> add Allegro here
   normalize/engine.py  declarative extraction    -> driven by a domain pack
@@ -254,7 +272,7 @@ src/dealhunter/        the engine - knows nothing about any product
   storage/             SQLite schema, dedup, change detection
   report/              console + tabbed HTML output
   pipeline.py          the only module that knows the full sequence
-tests/                 64 offline tests
+tests/                 76 offline tests
 docs/extending.md      how to add a search, product type, source or enricher
 ```
 

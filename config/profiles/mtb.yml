@@ -20,9 +20,6 @@ search:
       radius_km: 100
 
 preferences:
-  rider:
-    height_cm: 178
-    inseam_cm: 82
 
   budget:
     target: 2000
@@ -59,7 +56,6 @@ preferences:
   preferred_models: []
 
   required: []
-  nice_to_have: [hydraulic_disc, through_axle, "1x_drivetrain"]
   disqualifying: [parts_only, frame_damage, kids_bike, ebike, wrong_category]
 
 weights:

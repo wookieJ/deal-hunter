@@ -78,11 +78,8 @@
       <a href="{{ o.url }}" target="_blank" rel="noopener">{{ o.title }}</a></div>
     <div class="specs">
       <span class="chip price">{{ '%d PLN'|format(o.price) if o.price else 'no price' }}</span>
-      <span class="chip">{{ o.size_label }}</span>
-      {% if o.attrs.groupset %}<span class="chip">{{ o.attrs.groupset }}</span>{% endif %}
-      {% if o.attrs.brakes %}<span class="chip">{{ o.attrs.brakes }}</span>{% endif %}
-      {% if o.attrs.frame_material %}<span class="chip">{{ o.attrs.frame_material }}</span>{% endif %}
-      {% if o.attrs.model_year %}<span class="chip">{{ o.attrs.model_year }}</span>{% endif %}
+      {% for field in o.summary_fields %}<span class="chip">{{ field }}</span>{% endfor %}
+      {% for field in o.chip_fields %}<span class="chip">{{ field }}</span>{% endfor %}
       {% if o.drive_km %}<span class="chip dist">{{ '~' if o.drive_estimated }}{{ o.drive_km }} km by car{% if o.drive_min %} &middot; {{ o.drive_min }} min{% endif %}</span>{% endif %}
     </div>
     {% if o.changes %}<div class="verdict"><b class="b-chg">{{ o.changes|join(' &middot; ')|safe }}</b></div>{% endif %}
