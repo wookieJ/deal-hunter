@@ -16,7 +16,7 @@ rewrite.
 | Field | Value |
 |---|---|
 | Type | Project |
-| Owner | Lukasz |
+| Owner | wookieJ |
 | Status | Active |
 | Tags | `deal-hunter`, `olx`, `scraping`, `bikes`, `scoring`, `sqlite`, `python` |
 | Current focus | v0.3 published as a standalone git repo; database cleared for a fresh start |
@@ -122,7 +122,7 @@ trekking 1653, city 1650, electric 1649, folding 4243, kids 1681, all bikes 461.
 
 | Date | Question | Owner | Status |
 |---|---|---|---|
-| 2026-08-24 | Which further models to add to `config/geometry.yml` first | Lukasz | Open - candidates: Cube Nuroad, Kross Esker, Romet Aspre, Specialized Diverge |
+| 2026-08-24 | Which further models to add to `config/geometry.yml` first | wookieJ | Open - candidates: Cube Nuroad, Kross Esker, Romet Aspre, Specialized Diverge |
 
 ## Changelog
 
