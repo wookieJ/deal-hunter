@@ -21,7 +21,7 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
-from .scoring.bikes import haversine_km
+from .scoring.engine import haversine_km
 
 USER_AGENT = "deal-hunter/0.1 (personal use; https://github.com/wookieJ/deal-hunter)"
 

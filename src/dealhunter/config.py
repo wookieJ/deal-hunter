@@ -103,7 +103,7 @@ def resolve(path: str | Path) -> Path:
 # Bump whenever the scorer's logic or the wording of its reasons changes. The
 # profile alone is not enough: translating the output left stored scores with
 # stale text, because the rules that produced them had not changed.
-SCORING_VERSION = 2
+SCORING_VERSION = 4
 
 
 def profile_fingerprint(profile: dict[str, Any]) -> str:
@@ -112,7 +112,7 @@ def profile_fingerprint(profile: dict[str, Any]) -> str:
     offers that fall out of the search window keep scores computed under rules
     that no longer apply - and quietly pollute the ranking with numbers that
     cannot be reproduced."""
-    relevant = {k: profile.get(k) for k in ("category", "preferences", "weights", "bonuses")}
+    relevant = {k: profile.get(k) for k in ("domain", "preferences", "weights", "bonuses", "dimensions")}
     relevant["_scoring_version"] = SCORING_VERSION
     blob = json.dumps(relevant, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]

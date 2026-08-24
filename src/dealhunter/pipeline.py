@@ -29,12 +29,12 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
         make_report: bool = True, quiet: bool = False) -> dict[str, Any]:
     started = time.monotonic()
     profile = config.load_profile(profile_name)
-    category = profile.get("category", "bikes")
+    domain = profile.get("domain", "bikes")
     source_name, spec = prepare(profile, settings)
 
     source = get_source(source_name, settings)
-    normalizer = get_normalizer(category)
-    scorer = get_scorer(category)
+    normalizer = get_normalizer(domain)
+    scorer = get_scorer(domain)
     fingerprint = config.profile_fingerprint(profile)
 
     conn = connect(config.resolve(settings["storage"]["db_path"]))
@@ -65,7 +65,7 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
         if result.disqualified:
             stats["disqualified"] += 1
 
-        repo.save_attrs(raw.uid, category, attrs)
+        repo.save_attrs(raw.uid, domain, attrs)
         repo.save_score(raw.uid, profile["name"], result, fingerprint)
 
         if status == "new":
@@ -152,9 +152,9 @@ def rescore(repo: Repo, profile: dict[str, Any], settings: dict[str, Any],
     if not stale:
         return 0
 
-    category = profile.get("category", "bikes")
-    normalizer = get_normalizer(category)
-    scorer = get_scorer(category)
+    domain = profile.get("domain", "bikes")
+    normalizer = get_normalizer(domain)
+    scorer = get_scorer(domain)
     sources: dict[str, Any] = {}
 
     for item in stale:
@@ -168,7 +168,7 @@ def rescore(repo: Repo, profile: dict[str, Any], settings: dict[str, Any],
         attrs = normalizer.normalize(raw)
         for enrich in ENRICHERS:
             attrs = enrich(attrs, raw)
-        repo.save_attrs(raw.uid, category, attrs)
+        repo.save_attrs(raw.uid, domain, attrs)
         repo.save_score(raw.uid, profile["name"], scorer.score(attrs, raw, profile), fingerprint)
         repo.update_coordinates(raw.uid, raw.lat, raw.lon)
 

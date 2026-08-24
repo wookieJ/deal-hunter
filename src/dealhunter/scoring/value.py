@@ -31,36 +31,43 @@ CONDITION_FACTOR = {"nowe": 1.30, "jak nowe": 1.15, "odnowione": 1.0,
                     "używane": 1.0, "uzywane": 1.0, "uszkodzone": 0.5}
 
 
-def estimate(attrs: dict[str, Any], current_year: int = 2026) -> float | None:
-    """Estimated fair asking price in PLN, or None when we know too little."""
-    tier = attrs.get("groupset_tier")
+def estimate(attrs: dict[str, Any], spec: dict[str, Any] | None = None,
+             current_year: int = 2026) -> float | None:
+    """Estimated fair asking price, or None when we know too little.
+
+    Driven entirely by the domain's `value_model` block, so a new product type
+    prices its own spec without touching this file.
+    """
+    spec = spec or {}
+    tier = attrs.get(spec.get("tier_attr", "groupset_tier"))
     if tier is None:
-        base = UNKNOWN_GROUPSET_BASE
+        base = spec.get("unknown_base", UNKNOWN_GROUPSET_BASE)
     else:
-        base = next(price for threshold, price in TIER_BASE if tier >= threshold)
+        table = spec.get("base_by_tier") or TIER_BASE
+        base = next((price for threshold, price in table if tier >= threshold),
+                    spec.get("unknown_base", UNKNOWN_GROUPSET_BASE))
 
-    value = base
-    value *= MATERIAL_FACTOR.get(attrs.get("frame_material") or "", 1.0)
-    value *= BRAKE_FACTOR.get(attrs.get("brakes") or "", 1.0)
-    value *= CONDITION_FACTOR.get((attrs.get("condition") or "").lower(), 1.0)
+    value = float(base)
+    for attr, factors in (spec.get("factors") or {}).items():
+        value *= factors.get((attrs.get(attr) or "").lower(), 1.0)
 
-    year = attrs.get("model_year")
-    if year:
+    age_cfg = spec.get("age")
+    year = attrs.get(spec.get("year_attr", "model_year"))
+    if age_cfg and year:
         age = max(0, current_year - year)
-        if age <= 2:
-            value *= 1.10
-        elif age <= 5:
-            value *= 0.95
-        elif age <= 9:
-            value *= 0.80
+        for max_age, factor in age_cfg.get("bands", []):
+            if age <= max_age:
+                value *= factor
+                break
         else:
-            value *= 0.65
+            value *= age_cfg.get("older", 1.0)
     return round(value)
 
 
-def bargain(price: float | None, attrs: dict[str, Any]) -> tuple[float, str]:
+def bargain(price: float | None, attrs: dict[str, Any],
+            spec: dict[str, Any] | None = None) -> tuple[float, str]:
     """Points to add for a price well below the spec's market level (or subtract above it)."""
-    fair = estimate(attrs)
+    fair = estimate(attrs, spec)
     if not price or not fair:
         return 0.0, ""
     ratio = fair / price

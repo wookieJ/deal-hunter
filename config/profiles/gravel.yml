@@ -12,7 +12,7 @@
 #     olx:
 #       area: { name: YourCity, city_id: 00000, lat: 00.0, lon: 00.0, radius_km: 100 }
 name: gravel
-category: bikes
+domain: bikes
 description: Example gravel profile - copy the personal bits into gravel.local.yml
 
 search:

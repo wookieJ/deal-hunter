@@ -3,7 +3,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dealhunter.normalize.geometry import resolve
+from dealhunter.normalize.lookup import resolve as _resolve
+
+
+def resolve(brand, title, variant, year):
+    """The bikes domain's geometry table, via the generic lookup."""
+    found = _resolve('geometry', 'bikes', brand, title, variant, year)
+    if not found:
+        return {'geo_reach': None, 'geo_stack': None, 'geo_confidence': '', 'geo_note': ''}
+    return {'geo_reach': found['values'].get('reach'),
+            'geo_stack': found['values'].get('stack'),
+            'geo_confidence': found['confidence'], 'geo_note': found['note']}
 
 
 class TestGeometryLookup(unittest.TestCase):

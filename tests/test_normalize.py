@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from dealhunter.models import RawListing
-from dealhunter.normalize.bikes import BikeNormalizer
+from dealhunter.normalize.base import get_normalizer
 
 
 def listing(title="", desc="", **kw):
@@ -16,7 +16,7 @@ def listing(title="", desc="", **kw):
 
 class TestFrameSize(unittest.TestCase):
     def setUp(self):
-        self.n = BikeNormalizer()
+        self.n = get_normalizer("bikes")
 
     def test_cm_variants(self):
         for text, expected in [
@@ -43,7 +43,7 @@ class TestNegationGuard(unittest.TestCase):
     """The bug that hid good offers: sellers advertise the ABSENCE of damage."""
 
     def setUp(self):
-        self.n = BikeNormalizer()
+        self.n = get_normalizer("bikes")
 
     def test_negated_damage_is_not_a_disqualifier(self):
         for text in ["Rama bez pęknięć i wgnieceń", "brak uszkodzeń ramy",
@@ -58,7 +58,7 @@ class TestNegationGuard(unittest.TestCase):
 
 class TestSpecs(unittest.TestCase):
     def setUp(self):
-        self.n = BikeNormalizer()
+        self.n = get_normalizer("bikes")
 
     def test_groupset_specificity(self):
         cases = [("Shimano GRX 810 1x11", "Shimano GRX 800/820"),

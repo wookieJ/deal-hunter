@@ -7,8 +7,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from dealhunter import config, pipeline
 from dealhunter.models import RawListing
-from dealhunter.normalize.bikes import BikeNormalizer
-from dealhunter.scoring.bikes import BikeScorer, haversine_km
+from dealhunter.normalize.base import get_normalizer
+from dealhunter.scoring.base import get_scorer
+from dealhunter.scoring.engine import haversine_km
 
 SETTINGS = config.load_settings()
 PROFILE = config.load_profile("gravel", use_local=False)   # never the personal override
@@ -27,8 +28,8 @@ def score_of(title, desc="", price=None, lat=AREA["lat"], lon=AREA["lon"], **kw)
     price = BUDGET["target"] if price is None else price
     raw = RawListing(source="olx", external_id="1", url="u", title=title,
                      description=desc, price=price, lat=lat, lon=lon, **kw)
-    attrs = BikeNormalizer().normalize(raw)
-    return BikeScorer().score(attrs, raw, PROFILE)
+    attrs = get_normalizer("bikes").normalize(raw)
+    return get_scorer("bikes").score(attrs, raw, PROFILE)
 
 
 class TestPriceDominatesSpec(unittest.TestCase):
@@ -68,11 +69,17 @@ class TestGeometrySizing(unittest.TestCase):
         self.assertTrue(any("reach 415" in r for r in s.reasons))
 
     def test_label_only_bike_cannot_reach_full_size_marks(self):
+        """Compare the share of the dimension earned, not raw points: weights are
+        renormalised per offer over the dimensions that are actually known, so
+        absolute points are not comparable between two different listings."""
+        def size_share(result, needle):
+            reason = [r for r in result.reasons if needle in r][0]
+            earned, maximum = reason.split(" ")[0].split("/")
+            return float(earned) / float(maximum)
+
         geo = score_of("Merida Silex 400 rozmiar L 2019 GRX 400", price=3000)
         label = score_of("Kross Esker 4.0 rozmiar L GRX 400", price=3000)
-        geo_pts = [r for r in geo.reasons if "geometry" in r][0]
-        label_pts = [r for r in label.reasons if "size L" in r][0]
-        self.assertGreater(float(geo_pts.split("/")[0]), float(label_pts.split("/")[0]))
+        self.assertGreater(size_share(geo, "geometry"), size_share(label, "size L"))
 
     def test_medium_is_not_rejected_because_sizing_is_brand_dependent(self):
         s = score_of("Merida Silex 400 rozmiar M 2023 GRX 400", price=3000)
@@ -140,7 +147,7 @@ class TestSearchAreaVersusHome(unittest.TestCase):
                                 {"name": "Krakow", "lat": 50.0647, "lon": 19.9450,
                                  "radius_km": 50},
                                 TEST_HOME)
-        scorer, norm = BikeScorer(), BikeNormalizer()
+        scorer, norm = get_scorer("bikes"), get_normalizer("bikes")
 
         def at(lat, lon):
             raw = RawListing(source="olx", external_id="1", url="u",

@@ -1,0 +1,552 @@
+# Domain pack: everything bike-specific lives here, not in the engine.
+# Copy this directory to support a new kind of product - see docs/extending.md.
+
+name: bikes
+description: 'Bicycles: extraction rules for Polish marketplace listings.'
+language_note: Patterns match Polish listing text. They are data, not translations - rewriting them in
+  English would break extraction entirely.
+negation: '(?:\bbez\b|\bbrak\w*\b|\bnie\s+ma\b|\bnie\b|\b[zż]adn\w*\b)[^.!?;]{0,40}$'
+component_context: 'widel\w*|fork|kierownic\w*|wspornik\w*|mostek|sztyc\w*|siode[lł]\w*|ko[lł]a\b|obr[eę]cz\w*|felg\w*|korb\w*|bidon\w*|baga[zż]nik\w*'
+extract:
+- key: bike_type
+  type: patterns
+  values:
+  - pattern: '\bgravel\w*|\bszutrow\w*|\ball[\s\-]?road\b'
+    label: gravel
+  - pattern: '\bszosow\w*|\bkolarz\w*|\broad\s*bike\b|\bszosa\b'
+    label: road
+  - pattern: '\bmtb\b|\bgórsk\w*|\bgorsk\w*|\bhardtail\b|\benduro\b|\btrail\b'
+    label: mtb
+  - pattern: '\btrekking\w*|\btreking\w*'
+    label: trekking
+  - pattern: '\bcross\w*'
+    label: cross
+  - pattern: '\bmiejsk\w*|\bcity\s*bike\b|\bholender\w*'
+    label: city
+- key: brand
+  type: dictionary
+  param: brand
+  param_ignore:
+  - inna
+  - others
+  - other
+  prefer_title: true
+  values:
+  - merida
+  - cube
+  - giant
+  - trek
+  - canyon
+  - specialized
+  - cannondale
+  - scott
+  - kross
+  - orbea
+  - bianchi
+  - focus
+  - ghost
+  - kellys
+  - ktm
+  - lapierre
+  - marin
+  - fuji
+  - bombtrack
+  - genesis
+  - ridley
+  - cervelo
+  - bmc
+  - pinarello
+  - colnago
+  - rondo
+  - accent
+  - romet
+  - unibike
+  - author
+  - corratec
+  - stevens
+  - rose
+  - bergamont
+  - conway
+  - kona
+  - santa cruz
+  - yeti
+  - norco
+  - vitus
+  - boardman
+  - van rysel
+  - triban
+  - riverside
+  - rockrider
+  - btwin
+  - b'twin
+  - decathlon
+  - gt
+  - haibike
+  - cross
+  - gazelle
+  - batavus
+  - koga
+  - kalkhoff
+  - winora
+  - 3t
+  - open
+  - salsa
+  - surly
+  - all-city
+  - niner
+  - wilier
+  - basso
+  - look
+- key: frame_material
+  type: patterns
+  param: framematerial
+  param_map:
+    karbon: carbon
+    aluminium: aluminium
+    stal: steel
+    cr-mo: cromoly
+    hi-ten: steel
+  require_context: ram[aęy]
+  explicit_extra: '\bfull\s*carbon\b'
+  exclude_near_components: true
+  values:
+  - pattern: '\bkarbon\w*|\bcarbon\w*|\bwęgl\w*|\bwegl\w*'
+    label: carbon
+  - pattern: '\btytan\w*|\btitanium\b'
+    label: titanium
+  - pattern: '\bcr[\s\-]?mo\b|\bchromoly\b|\bcromoly\b|\breynolds\b|\bcolumbus\b'
+    label: cromoly
+  - pattern: '\bstal\w*|\bsteel\b|\bhi[\s\-]?ten\b'
+    label: steel
+  - pattern: '\balumini\w*|\baluminum\b|\balu\b|\b6061\b|\b7005\b'
+    label: aluminium
+- key: brakes
+  type: patterns
+  param: braketype
+  param_map:
+    tarczowe hydrauliczne: hydraulic_disc
+    tarczowe mechaniczne: mechanical_disc
+    szczękowe: rim
+    v-brake: rim
+    szczękowe hydrauliczne: rim
+  values:
+  - pattern: 'hydrauliczn\w*\s*(?:hamulc\w*\s*)?tarczow\w*|tarczow\w*\s*hydrauliczn\w*|hydraulic\w*\s*disc|\bhydraulik\w*\b|\bmt\d{3}\b|\bbr-?r?[dm]\w*\b'
+    label: hydraulic_disc
+  - pattern: 'mechaniczn\w*\s*(?:hamulc\w*\s*)?tarczow\w*|tarczow\w*\s*mechaniczn\w*|mechanical\s*disc|\bspyre\b|\bavid\s*bb\b|\btektro\s*mira\b'
+    label: mechanical_disc
+  - pattern: '\btarczow\w*\b|\bdisc\b|\bhamulce\s*tarcz'
+    label: disc
+  - pattern: 'v[\s\-]?brake|szczękow\w*|szczekow\w*|\bcaliper\b|\bobręczow\w*'
+    label: rim
+- key: groupset
+  type: tiered
+  tier_key: groupset_tier
+  values:
+  - pattern: '\bred\s*(?:axs|etap)\b'
+    label: SRAM Red AXS
+    tier: 100
+  - pattern: '\bdura[\s\-]?ace\b'
+    label: Shimano Dura-Ace
+    tier: 100
+  - pattern: '\bforce\s*(?:axs|etap)\b'
+    label: SRAM Force AXS
+    tier: 92
+  - pattern: '\bultegra\b'
+    label: Shimano Ultegra
+    tier: 92
+  - pattern: '\bgrx\s*(?:81[05]|820|rx8)\w*\b'
+    label: Shimano GRX 800/820
+    tier: 90
+  - pattern: '\bekar\b'
+    label: Campagnolo Ekar
+    tier: 90
+  - pattern: '\bforce\b'
+    label: SRAM Force
+    tier: 85
+  - pattern: '\bchorus\b'
+    label: Campagnolo Chorus
+    tier: 85
+  - pattern: '\bgrx\s*(?:6[01]0|rx6)\w*\b'
+    label: Shimano GRX 600
+    tier: 80
+  - pattern: '\brival\s*(?:axs|etap)\b'
+    label: SRAM Rival AXS
+    tier: 78
+  - pattern: '\bxt\b|\bdeore\s*xt\b'
+    label: Shimano Deore XT
+    tier: 78
+  - pattern: '\b105\b'
+    label: Shimano 105
+    tier: 78
+  - pattern: '\brival\b'
+    label: SRAM Rival
+    tier: 72
+  - pattern: '\bgrx\s*(?:400|rx4)\w*\b'
+    label: Shimano GRX 400
+    tier: 72
+  - pattern: '\bslx\b'
+    label: Shimano SLX
+    tier: 70
+  - pattern: '\bapex\s*(?:axs|etap)\b'
+    label: SRAM Apex AXS
+    tier: 62
+  - pattern: '\btiagra\b'
+    label: Shimano Tiagra
+    tier: 60
+  - pattern: '\bgrx\b'
+    label: Shimano GRX
+    tier: 75
+  - pattern: '\bdeore\b'
+    label: Shimano Deore
+    tier: 58
+  - pattern: '\bapex\b'
+    label: SRAM Apex
+    tier: 55
+  - pattern: '\bcues\b'
+    label: Shimano CUES
+    tier: 50
+  - pattern: '\bnx\b'
+    label: SRAM NX
+    tier: 50
+  - pattern: '\bsx\b'
+    label: SRAM SX
+    tier: 38
+  - pattern: '\bsora\b'
+    label: Shimano Sora
+    tier: 42
+  - pattern: '\balivio\b'
+    label: Shimano Alivio
+    tier: 35
+  - pattern: '\bclaris\b'
+    label: Shimano Claris
+    tier: 28
+  - pattern: '\bacera\b'
+    label: Shimano Acera
+    tier: 28
+  - pattern: '\baltus\b'
+    label: Shimano Altus
+    tier: 25
+  - pattern: '\bmicroshift\b|\badvent\b|\bsword\b'
+    label: microSHIFT
+    tier: 45
+  - pattern: '\btourney\b'
+    label: Shimano Tourney
+    tier: 15
+- key: model
+  type: model_after_brand
+  brand_key: brand
+  stop_words:
+  - gorski
+  - gravel
+  - górski
+  - nowy
+  - okazja
+  - polecam
+  - rama
+  - ramy
+  - rower
+  - rowerowy
+  - rozmiar
+  - sprzedam
+  - szosowy
+  - szt
+  - uzywany
+  - używany
+  max_tokens: 3
+  scan_tokens: 4
+- key: wheel_size
+  type: regex_value
+  param: wheelsize
+  strip: '"'
+  pattern: '\b(700\s*c|650\s*b|29|27[,.]5|28|26|24)\s*[\"'']?'
+- key: model_year
+  type: year
+  pattern: '\b(20[0-2]\d)\b'
+  min: 2005
+  max: 2027
+  pick: max
+- key: condition
+  type: param
+  param: state
+- key: frame_size_letter
+  type: enum_regex
+  uppercase: true
+  raw_key: frame_size_raw
+  pattern: '(?:rozmiar\w*|rozm\.?|size|ram[ay])[\s:\-]*\b(xxl|xl|l/xl|m/l|s/m|xs|s|m|l)\b(?!\w)'
+- key: frame_size_cm
+  type: numeric
+  min: 44
+  max: 64
+  raw_key: frame_size_raw
+  estimated_key: frame_size_estimated
+  patterns:
+  - '(?:rozmiar\w*\s*ram\w*|ram\w*\s*rozmiar\w*|frame\s*size|rozmiar|rozm\.?|ram[ay])[\s:\-]*([4-6]\d)\s*(?:cm)?\b'
+  - '\b([4-6]\d)\s*cm\b'
+  unit_fallback:
+    pattern: '(?:rozmiar\w*|rozm\.?|ram[ay])[\s:\-]*(1[3-9]|2[0-4])\s*(?:\"|cal\w*|inch)'
+    multiply: 2.54
+  param_buckets:
+    param: framesize
+    map:
+      16-and-less:
+      - 44
+      - 48
+      16" i mniej:
+      - 44
+      - 48
+      17-18:
+      - 48
+      - 52
+      17-18":
+      - 48
+      - 52
+      19-20:
+      - 52
+      - 56
+      19-20":
+      - 52
+      - 56
+      21-22:
+      - 56
+      - 60
+      21-22":
+      - 56
+      - 60
+      23-and-more:
+      - 60
+      - 64
+      23" i wiecej:
+      - 60
+      - 64
+      23" i więcej:
+      - 60
+      - 64
+  fallback_requires_unset:
+  - frame_size_letter
+- key: geo
+  type: lookup
+  table: geometry
+  brand_key: brand
+  variant_key: frame_size_letter
+  year_key: model_year
+  outputs:
+    reach: geo_reach
+    stack: geo_stack
+  model_key: geo_model
+  confidence_key: geo_confidence
+  note_key: geo_note
+flags:
+  carbon_fork: '\bwidelec\s*karbon\w*|\bcarbon\s*fork\b|\bkarbonowy\s*widelec\b'
+  through_axle: '\bo[śs]\s*przelotow\w*|\bthru[\s\-]?axle\b|\bthrough\s*axle\b|\bsztywn\w*\s*os\w*|\b12\s*x\s*1(?:00|42)\b|\b15\s*x\s*100\b'
+  tubeless: '\btubeless\b|\btlr\b|\btubelessow\w*'
+  1x_drivetrain: '\b1\s*x\s*(?:10|11|12|13)\b|\bjedna\s*tarcza\b|\b1x\b'
+  electronic_shifting: '\bdi2\b|\baxs\b|\betap\b|\belektroniczn\w*\s*(?:przerzut|osprz)'
+  warranty: '\bgwarancj\w*\b'
+  new_or_display: '\bnowy\s*rower\b|\bfabrycznie\s*nowy\b|\bpowystawow\w*'
+flags_from_attr:
+  brakes:
+    hydraulic_disc: hydraulic_disc
+disqualifiers:
+  parts_only: '\bna\s*cz[eę][sś]ci\b|\bcz[eę][sś]ci\s*z\s*rower\w*|\bdo\s*renowacji\b|\bbez\s*ko[lł]\b|\bsama\s*rama\b|\btylko\s*rama\b|\brama\s*bez\b'
+  frame_damage: '\bp[eę]kni[eę]\w*|\bz[lł]amana\s*rama\b|\buszkodzon\w*\s*ram\w*|\bwgniecen\w*\s*ram\w*|\brozbit\w*\b'
+  kids_bike: '\bdzieci[eę]c\w*|\bdla\s*dziecka\b|\bjunior\w*\b|\bko[lł]a\s*(?:12|14|16|18|20)\s*[\"'']'
+  ebike: '\belektryczn\w*|\be[\s\-]?bike\b|\bebike\b|\bwspomagani\w*\b|\bbosch\s*(?:perf|active)|\bshimano\s*steps\b|\bsilnik\s*\d{3}w\b'
+  wrong_category: '\bzamieni[eę]\b|\bzamiana\s*na\b|\bkupi[eę]\b|\bposzukuj[eę]\b|\bszukam\b'
+  flatbar: '\bflat\s*bar\b|\bflatbar\b|\bprosta\s*kierownic\w*|\bp[lł]aska\s*kierownic\w*'
+title_disqualifiers:
+  fitness_bike: '\bfitness\b'
+  parts_only: '\bframeset\b|\bsam[aą]\s*ram[aę]\b'
+value_model:
+  tier_attr: groupset_tier
+  year_attr: model_year
+  unknown_base: 2500
+  base_by_tier:
+  - - 90
+    - 6000
+  - - 75
+    - 4200
+  - - 60
+    - 3200
+  - - 45
+    - 2500
+  - - 0
+    - 1900
+  factors:
+    frame_material:
+      carbon: 1.6
+      titanium: 1.8
+      cromoly: 1.05
+      steel: 0.95
+      aluminium: 1.0
+    brakes:
+      hydraulic_disc: 1.1
+      mechanical_disc: 1.0
+      disc: 1.03
+      rim: 0.82
+    condition:
+      nowe: 1.3
+      jak nowe: 1.15
+      odnowione: 1.0
+      używane: 1.0
+      uzywane: 1.0
+      uszkodzone: 0.5
+  age:
+    bands:
+    - - 2
+      - 1.1
+    - - 5
+      - 0.95
+    - - 9
+      - 0.8
+    older: 0.65
+dimensions:
+  size:
+    type: range_chain
+    label: size
+    unknown_note: size not stated - ask the seller (not counted against the offer)
+    sources:
+    - attr: geo_reach
+      kind: numeric_range
+      label: geometry
+      name_attr: geo_model
+      unit_label: reach
+      ideal_from: frame_size.ideal_reach_mm
+      acceptable_from: frame_size.acceptable_reach_mm
+      acceptable_score: 0.65
+      out_of_range_score: 0.2
+      confidence_attr: geo_confidence
+      note_attr: geo_note
+      confidence_caps:
+        ambiguous: 0.9
+        unverified: 0.85
+      companion:
+        attr: geo_stack
+        label: stack
+        unit: mm
+        min_from: frame_size.comfort_stack_mm
+        bonus: 0.05
+        tolerance: 25
+        penalty: 0.9
+        good_note: comfortable stack
+        bad_note: low stack
+    - attr: frame_size_cm
+      kind: value_set
+      label: size
+      cap: 0.85
+      estimated_attr: frame_size_estimated
+      estimated_cap: 0.8
+      preferred_from: frame_size.preferred_cm
+      acceptable_from: frame_size.acceptable_cm
+      preferred_note: fits per generic chart
+      acceptable_note: acceptable per generic chart
+      poor_note: probably does not fit
+    - attr: frame_size_letter
+      kind: value_set
+      label: size
+      cap: 0.85
+      preferred_from: frame_size.preferred_letter
+      acceptable_from: frame_size.acceptable_letter
+      preferred_note: fits per generic chart, no geometry data
+      acceptable_note: acceptable, no geometry data
+      poor_note: probably does not fit
+  groupset:
+    type: tier
+    attr: groupset_tier
+    label_attr: groupset
+    label: groupset
+    preferred_bonus: 0.1
+    preferred_contains_from: preferred_groupsets
+    unknown_note: groupset not stated (not counted against the offer)
+  features:
+    type: flag_coverage
+    label: features
+    weights:
+      hydraulic_disc: 0.45
+      carbon_fork: 0.25
+      through_axle: 0.2
+      tubeless: 0.1
+    negative:
+      hydraulic_disc:
+        attr: brakes
+        values:
+        - rim
+        - mechanical_disc
+    unknown_note: features not stated (not counted against the offer)
+  condition:
+    type: enum_map
+    attr: condition
+    label: condition
+    default_score: 0.65
+    scores:
+      nowe: 1.0
+      jak nowe: 0.95
+      odnowione: 0.85
+      używane: 0.75
+      uzywane: 0.75
+      uszkodzone: 0.15
+    labels:
+      nowe: new
+      jak nowe: as new
+      odnowione: refurbished
+      używane: used
+      uzywane: used
+      uszkodzone: damaged
+  location:
+    type: distance
+    far_score: 0.4
+    bands:
+    - - 1.0
+      - 1.0
+      - inside search area
+    - - 2.0
+      - 0.75
+      - ''
+    - - 3.5
+      - 0.55
+      - far
+  brand:
+    type: preference_list
+    attr: brand
+    label: brand
+    known_score: 0.7
+    preferred_from: brands.preferred
+    avoid_from: brands.avoid
+    unknown_note: brand not recognised (not counted against the offer)
+reject_rules:
+- attr: geo_reach
+  below_from: frame_size.reject_reach_below
+  above_from: frame_size.reject_reach_above
+  message: reach {value} mm is clearly wrong
+- attr: frame_size_cm
+  estimated_attr: frame_size_estimated
+  below_from: frame_size.reject_cm_below
+  above_from: frame_size.reject_cm_above
+  message: size {value} cm is clearly wrong
+- attr: frame_size_letter
+  in_from: frame_size.reject_letters
+  message: size {value} is clearly wrong
+# Where a score regresses to when nothing can be determined. Neither good nor bad:
+# a listing that says little is uncertain, not inferior.
+unknown_prior: 55
+
+verdict_bands:
+- - 85
+  - Very good offer
+- - 70
+  - Good offer
+- - 55
+  - Average offer
+- - 0
+  - Weak offer
+verdict_notes:
+- when_attr: geo_reach
+  text: geometry checked (reach {geo_reach} mm)
+  uses:
+  - geo_reach
+- when_attr: frame_size_estimated
+  text: size estimated - confirm with the seller
+- when_attr: frame_size_cm
+  text: size from the label - check the geometry
+- when_attr: frame_size_letter
+  text: size from the label - check the geometry
+verdict_fallback: size not stated
