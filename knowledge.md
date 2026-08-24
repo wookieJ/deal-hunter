@@ -88,6 +88,7 @@ trekking 1653, city 1650, electric 1649, folding 4243, kids 1681, all bikes 461.
 | Command / Workflow | Purpose | Notes |
 |---|---|---|
 | `./setup.sh` | Create `.venv`, install deps | Once per machine |
+| `./install-cli.sh` | Put `deal` on PATH | Symlinks into a PATH dir; `deal run` works anywhere |
 | `./run.sh run -p gravel` | Full search, score, store, report | ~12 s for ~210 offers |
 | `./run.sh run -l 40` | Short run for testing | Avoids hammering OLX |
 | `./run.sh top -n 20` | Best offers from DB without fetching | Free, offline |

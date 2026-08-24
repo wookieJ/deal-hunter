@@ -65,10 +65,22 @@ cd deal-hunter
 
 That is the whole setup. No server, no scheduler, no API keys, no account.
 
+To run it from anywhere instead of from this directory:
+
+```bash
+./install-cli.sh            # puts `deal` on your PATH
+deal run                    # works from any directory
+```
+
+The installer symlinks a launcher that points at this checkout, so config, data
+and reports always resolve here no matter where you invoke it from. It picks a
+bin directory already on your PATH; override with `DEAL_BIN_DIR=/somewhere`.
+
 ## Usage
 
 ```bash
 ./run.sh run                      # search with the default 'gravel' profile
+                                  # (or just `deal run` after ./install-cli.sh)
 ./run.sh run -p gravel            # pick a profile explicitly
 ./run.sh run -l 40                # stop after 40 offers (quick test)
 ./run.sh run --no-report          # skip the HTML report
@@ -80,7 +92,7 @@ That is the whole setup. No server, no scheduler, no API keys, no account.
 ./test.sh                         # run the test suite (offline)
 ```
 
-Prefer a real install? `pip install -e .` gives you a `dealhunter` command; set
+`./install-cli.sh` gives you both `deal` and the longer `dealhunter` alias. Set
 `DEALHUNTER_HOME` if you want config and data somewhere other than the repo.
 
 ## Two locations, deliberately separate

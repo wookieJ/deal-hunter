@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the search area or from home.
 - `report.keep_dated_copies` setting (default `false`) for keeping a timestamped
   archive alongside the stable report.
+- **`install-cli.sh`** putting a `deal` command on your PATH, so the tool runs from
+  any directory. The launcher points back at the checkout, so config, data and
+  reports resolve there regardless of the working directory.
 - `reset` command to wipe collected offers. It keeps `travel_cache` by default, since
   that table maps coordinates to road distances, never goes stale, holds nothing about
   offers, and costs one routing request per entry to rebuild. `--all` drops it too.

@@ -25,7 +25,8 @@ dependencies = [
 ]
 
 [project.scripts]
-dealhunter = "dealhunter.cli:main"
+deal = "dealhunter.cli:main"          # short form, for daily use
+dealhunter = "dealhunter.cli:main"    # explicit form, avoids clashing with anything
 
 [tool.setuptools.packages.find]
 where = ["src"]
