@@ -19,7 +19,7 @@ rewrite.
 | Owner | Lukasz |
 | Status | Active |
 | Tags | `deal-hunter`, `olx`, `scraping`, `bikes`, `scoring`, `sqlite`, `python` |
-| Current focus | v0.2 scoring: value-oriented, geometry-based sizing, travel distance |
+| Current focus | v0.3 published as a standalone git repo; database cleared for a fresh start |
 | Next action | Populate `config/geometry.yml` beyond Merida Silex from manufacturer charts |
 | Main output | `./run.sh run` -> console summary + `reports/gravel_latest.html` |
 
@@ -91,7 +91,8 @@ trekking 1653, city 1650, electric 1649, folding 4243, kids 1681, all bikes 461.
 | `./run.sh top -n 20` | Best offers from DB without fetching | Free, offline |
 | `./run.sh history olx:<id>` | Price history of one offer | |
 | `./run.sh rescore` | Recompute scores after a profile edit | Offline, uses archived payloads |
-| `./test.sh` | 60 unit tests | Extraction, scoring, geometry, value, dedup |
+| `./run.sh reset` | Wipe collected offers | Keeps `travel_cache` unless `--all` |
+| `./test.sh` | 63 unit tests | Extraction, scoring, geometry, value, dedup |
 
 ## Dependencies And External Services
 

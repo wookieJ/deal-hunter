@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carries only a placeholder.
 - `proximity_to` setting choosing whether the proximity score measures distance from
   the search area or from home.
+- `reset` command to wipe collected offers. It keeps `travel_cache` by default, since
+  that table maps coordinates to road distances, never goes stale, holds nothing about
+  offers, and costs one routing request per entry to rebuild. `--all` drops it too.
 
 ### Changed
 - **Search area and home address are now separate concepts.** Previously one field did

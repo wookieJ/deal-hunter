@@ -75,6 +75,7 @@ That is the whole setup. No server, no scheduler, no API keys, no account.
 ./run.sh top -n 20                # best offers already in the DB, no fetching
 ./run.sh history olx:1089311360   # price history of a single offer
 ./run.sh rescore                  # recompute scores after editing a profile (offline)
+./run.sh reset                    # wipe collected offers and start fresh
 ./run.sh profiles                 # list available profiles
 ./test.sh                         # run the test suite (offline)
 ```
