@@ -101,7 +101,7 @@ This tool deals with two different places, and conflating them produces nonsense
 
 | | Where it lives | What it does |
 |---|---|---|
-| **Search area** | `search.olx.area` in a profile | Where offers are hunted. A search parameter — you can hunt in a city you do not live in. Also narrows OLX's 1000-result cap: Poznan +100 km returns ~760 offers instead of 1000 truncated from the whole country. |
+| **Search area** | `search.olx.area` in a profile | Where offers are hunted. A search parameter — you can hunt in a city you do not live in. Also narrows OLX's 1000-result cap: a city +100 km returns ~760 offers instead of 1000 truncated from the whole country. |
 | **Home** | `config/settings.local.yml` | Where *you* live. Used only for the travel distance shown in reports. |
 
 `proximity_to` decides which of the two the proximity score measures against, so

@@ -11,9 +11,9 @@
 #     lat: 52.1234
 #     lon: 17.1234
 home:
-  name: Poznan (przyklad - nadpisz w settings.local.yml)
-  lat: 52.4064
-  lon: 16.9252
+  name: Example City (przyklad - nadpisz w settings.local.yml)
+  lat: 52.2297
+  lon: 21.0122
 
 http:
   impersonate: chrome        # curl_cffi browser fingerprint

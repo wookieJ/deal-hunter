@@ -25,7 +25,7 @@ search:
     sort_by: created_at:desc
 
     # WHERE TO HUNT. This is a search parameter, not your address - you can hunt
-    # anywhere. It also pushes back OLX's 1000-result cap: Poznan +100 km returns
+    # anywhere. It also pushes back OLX's 1000-result cap: a city +100 km returns
     # ~760 offers instead of 1000 truncated from the whole country.
     # OLX accepts distances of 0, 2, 5, 10, 15, 30, 50, 75, 100 km.
     area:
