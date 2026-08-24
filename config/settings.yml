@@ -11,7 +11,7 @@
 #     lat: 52.1234
 #     lon: 17.1234
 home:
-  name: Example City (przyklad - nadpisz w settings.local.yml)
+  name: Example City (placeholder - override in settings.local.yml)
   lat: 52.2297
   lon: 21.0122
 

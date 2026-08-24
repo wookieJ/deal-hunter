@@ -99,16 +99,16 @@ class Repo:
         old_price, new_price = prev["price"], raw.price
         if old_price is not None and new_price is not None and old_price != new_price:
             delta = new_price - old_price
-            arrow = "spadek" if delta < 0 else "wzrost"
+            direction = "drop" if delta < 0 else "rise"
             pct = (delta / old_price * 100) if old_price else 0
             changes.append(
-                f"cena: {old_price:.0f} -> {new_price:.0f} zl "
-                f"({arrow} {abs(delta):.0f} zl, {pct:+.1f}%)"
+                f"price: {old_price:.0f} -> {new_price:.0f} PLN "
+                f"({direction} {abs(delta):.0f} PLN, {pct:+.1f}%)"
             )
         if prev["title"] != raw.title:
-            changes.append("tytul zmieniony")
+            changes.append("title changed")
         if not changes:
-            changes.append("opis zmieniony")
+            changes.append("description changed")
         return changes
 
     def save_attrs(self, uid: str, category: str, attrs: Attributes) -> None:

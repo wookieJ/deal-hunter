@@ -41,14 +41,14 @@
 </style></head><body><div class="wrap">
 
 <h1>Deal Hunter &mdash; {{ profile }}</h1>
-<div class="sub">{{ generated }} &middot; zrodlo: {{ source }}</div>
+<div class="sub">{{ generated }} &middot; source: {{ source }}</div>
 
 <div class="stats">
-  <div class="stat"><b>{{ stats.found }}</b><span>znalezionych</span></div>
-  <div class="stat"><b>{{ stats.seen }}</b><span>juz znanych</span></div>
-  <div class="stat"><b class="good">{{ stats.new }}</b><span>nowych</span></div>
-  <div class="stat"><b>{{ stats.changed }}</b><span>zmienionych</span></div>
-  <div class="stat"><b class="muted">{{ stats.disqualified }}</b><span>odrzuconych</span></div>
+  <div class="stat"><b>{{ stats.found }}</b><span>found</span></div>
+  <div class="stat"><b>{{ stats.seen }}</b><span>already known</span></div>
+  <div class="stat"><b class="good">{{ stats.new }}</b><span>new</span></div>
+  <div class="stat"><b>{{ stats.changed }}</b><span>changed</span></div>
+  <div class="stat"><b class="muted">{{ stats.disqualified }}</b><span>rejected</span></div>
 </div>
 
 {% macro card(o, badge='') %}
@@ -59,35 +59,35 @@
     <div class="score {{ 'good' if o.value >= 80 else 'mid' if o.value >= 60 else 'bad' }}">
       {{ o.value }}<span class="muted">/100</span></div>
     <div class="title">
-      {% if badge %}<span class="badge b-{{ badge }}">{{ 'NOWA' if badge == 'new' else 'ZMIANA' }}</span>{% endif %}
+      {% if badge %}<span class="badge b-{{ badge }}">{{ 'NEW' if badge == 'new' else 'CHANGED' }}</span>{% endif %}
       <a href="{{ o.url }}" target="_blank" rel="noopener">{{ o.title }}</a></div>
     <div class="specs">
-      <span class="chip price">{{ '%d zl'|format(o.price) if o.price else 'cena n/d' }}</span>
+      <span class="chip price">{{ '%d PLN'|format(o.price) if o.price else 'no price' }}</span>
       <span class="chip">{{ o.size_label }}</span>
       {% if o.attrs.groupset %}<span class="chip">{{ o.attrs.groupset }}</span>{% endif %}
       {% if o.attrs.brakes %}<span class="chip">{{ o.attrs.brakes }}</span>{% endif %}
       {% if o.attrs.frame_material %}<span class="chip">{{ o.attrs.frame_material }}</span>{% endif %}
       {% if o.attrs.model_year %}<span class="chip">{{ o.attrs.model_year }}</span>{% endif %}
-      {% if o.drive_km %}<span class="chip dist">{{ '~' if o.drive_estimated }}{{ o.drive_km }} km autem{% if o.drive_min %} &middot; {{ o.drive_min }} min{% endif %}</span>{% endif %}
+      {% if o.drive_km %}<span class="chip dist">{{ '~' if o.drive_estimated }}{{ o.drive_km }} km by car{% if o.drive_min %} &middot; {{ o.drive_min }} min{% endif %}</span>{% endif %}
     </div>
     {% if o.changes %}<div class="verdict"><b class="b-chg">{{ o.changes|join(' &middot; ')|safe }}</b></div>{% endif %}
     <div class="verdict">{{ o.verdict }}</div>
     <div class="muted">📍 {{ o.location or 'lokalizacja nieznana' }}
-      &middot; {{ 'firma' if o.is_business else 'prywatnie' }}
-      {%- if o.drive_km %} &middot; {{ '~' if o.drive_estimated }}{{ o.drive_km }} km z domu{% endif %}</div>
+      &middot; {{ 'business' if o.is_business else 'private' }}
+      {%- if o.drive_km %} &middot; {{ '~' if o.drive_estimated }}{{ o.drive_km }} km from home{% endif %}</div>
     <div class="link"><a href="{{ o.url }}" target="_blank" rel="noopener">{{ o.url }}</a></div>
     <div class="reasons">{{ o.reasons|join(' &nbsp;|&nbsp; ')|safe }}</div>
   </div>
 </div>
 {% endmacro %}
 
-{% if changed %}<h2>Zmiany w znanych ofertach ({{ changed|length }})</h2>
+{% if changed %}<h2>Changes to known offers ({{ changed|length }})</h2>
 {% for o in changed %}{{ card(o, 'chg') }}{% endfor %}{% endif %}
 
-{% if new %}<h2>Nowe oferty ({{ new|length }})</h2>
+{% if new %}<h2>New offers ({{ new|length }})</h2>
 {% for o in new %}{{ card(o, 'new') }}{% endfor %}{% endif %}
 
-<h2>Najlepsze oferty w bazie ({{ top|length }})</h2>
+<h2>Best offers in the database ({{ top|length }})</h2>
 {% for o in top %}{{ card(o) }}{% endfor %}
 
 </div></body></html>

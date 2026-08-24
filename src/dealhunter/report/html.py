@@ -15,10 +15,10 @@ _ENV = Environment(
 
 def _size_label(attrs: dict[str, Any]) -> str:
     if attrs.get("frame_size_cm"):
-        return f"rama {attrs['frame_size_cm']} cm"
+        return f"frame {attrs['frame_size_cm']} cm"
     if attrs.get("frame_size_letter"):
-        return f"rama {attrs['frame_size_letter']}"
-    return attrs.get("frame_size_raw") or "rozmiar ?"
+        return f"frame {attrs['frame_size_letter']}"
+    return attrs.get("frame_size_raw") or "size ?"
 
 
 def render(path: Path, profile: str, source: str, stats: dict[str, Any],

@@ -64,14 +64,14 @@ class TestGeometrySizing(unittest.TestCase):
 
     def test_geometry_is_used_when_the_model_is_known(self):
         s = score_of("Merida Silex 400 rozmiar L 2019 GRX 400", price=3000)
-        self.assertTrue(any("geometria" in r for r in s.reasons))
+        self.assertTrue(any("geometry" in r for r in s.reasons))
         self.assertTrue(any("reach 415" in r for r in s.reasons))
 
     def test_label_only_bike_cannot_reach_full_size_marks(self):
         geo = score_of("Merida Silex 400 rozmiar L 2019 GRX 400", price=3000)
         label = score_of("Kross Esker 4.0 rozmiar L GRX 400", price=3000)
-        geo_pts = [r for r in geo.reasons if "geometria" in r][0]
-        label_pts = [r for r in label.reasons if "rozmiar L" in r][0]
+        geo_pts = [r for r in geo.reasons if "geometry" in r][0]
+        label_pts = [r for r in label.reasons if "size L" in r][0]
         self.assertGreater(float(geo_pts.split("/")[0]), float(label_pts.split("/")[0]))
 
     def test_medium_is_not_rejected_because_sizing_is_brand_dependent(self):
@@ -87,7 +87,7 @@ class TestGeometrySizing(unittest.TestCase):
     def test_unknown_year_lowers_geometry_confidence(self):
         dated = score_of("Merida Silex 400 rozmiar L 2019 GRX 400", price=3000)
         undated = score_of("Merida Silex 400 rozmiar L GRX 400", price=3000)
-        self.assertTrue(any("rocznik nieznany" in r for r in undated.reasons))
+        self.assertTrue(any("model year unknown" in r for r in undated.reasons))
         self.assertNotEqual(dated.value, undated.value)
 
 

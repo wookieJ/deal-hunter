@@ -26,12 +26,12 @@ class TestValueModel(unittest.TestCase):
         attrs = {"groupset_tier": 90, "frame_material": "carbon", "brakes": "hydraulic_disc"}
         points, note = value.bargain(3000, attrs)
         self.assertGreater(points, 0)
-        self.assertIn("okazja", note)
+        self.assertIn("bargain", note)
 
     def test_overpriced_for_spec_is_penalised(self):
         points, note = value.bargain(5000, {"groupset_tier": 28, "frame_material": "aluminium"})
         self.assertLess(points, 0)
-        self.assertIn("drogo", note)
+        self.assertIn("expensive", note)
 
     def test_fairly_priced_bike_is_neutral(self):
         points, _ = value.bargain(3200, {"groupset_tier": 60, "frame_material": "aluminium"})
@@ -67,3 +67,14 @@ class TestProfileFingerprint(unittest.TestCase):
         changed = {**self.profile, "search": {"olx": {"category_id": 1651}}}
         self.assertEqual(self.config.profile_fingerprint(self.profile),
                          self.config.profile_fingerprint(changed))
+
+    def test_scoring_version_is_part_of_the_fingerprint(self):
+        """Translating or reworking the scorer must invalidate stored scores even
+        when the profile itself is untouched."""
+        before = self.config.profile_fingerprint(self.profile)
+        original = self.config.SCORING_VERSION
+        try:
+            self.config.SCORING_VERSION = original + 1
+            self.assertNotEqual(before, self.config.profile_fingerprint(self.profile))
+        finally:
+            self.config.SCORING_VERSION = original

@@ -37,7 +37,7 @@ class TestRepo(unittest.TestCase):
         self.repo.upsert(offer(price=4500), self.run_id)
         status, changes = self.repo.upsert(offer(price=4200), self.run_id)
         self.assertEqual(status, "changed")
-        self.assertIn("spadek", changes[0])
+        self.assertIn("drop", changes[0])
         self.assertIn("4200", changes[0])
 
     def test_price_history_accumulates(self):
@@ -50,7 +50,7 @@ class TestRepo(unittest.TestCase):
         self.repo.upsert(offer(), self.run_id)
         status, changes = self.repo.upsert(offer(desc="gravel, nowe opony"), self.run_id)
         self.assertEqual(status, "changed")
-        self.assertIn("opis", changes[0])
+        self.assertIn("description", changes[0])
 
     def test_scores_from_another_profile_version_are_stale(self):
         """A profile change must invalidate stored scores, or the ranking silently

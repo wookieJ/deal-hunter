@@ -65,11 +65,11 @@ def bargain(price: float | None, attrs: dict[str, Any]) -> tuple[float, str]:
         return 0.0, ""
     ratio = fair / price
     if ratio >= 2.0:
-        return 12.0, f"+12 okazja: ~{fair:.0f} zl rynkowo vs {price:.0f} zl"
+        return 12.0, f"+12 bargain: ~{fair:.0f} PLN market vs {price:.0f} PLN"
     if ratio >= 1.6:
-        return 8.0, f"+8 okazja: ~{fair:.0f} zl rynkowo vs {price:.0f} zl"
+        return 8.0, f"+8 bargain: ~{fair:.0f} PLN market vs {price:.0f} PLN"
     if ratio >= 1.3:
-        return 4.0, f"+4 ponizej poziomu rynkowego (~{fair:.0f} zl)"
+        return 4.0, f"+4 below market level (~{fair:.0f} PLN)"
     if ratio < 0.75:
-        return -4.0, f"-4 drogo jak na osprzet (~{fair:.0f} zl rynkowo)"
+        return -4.0, f"-4 expensive for the spec (~{fair:.0f} PLN market)"
     return 0.0, ""

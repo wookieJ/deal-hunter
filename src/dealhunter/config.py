@@ -100,12 +100,20 @@ def resolve(path: str | Path) -> Path:
     return p if p.is_absolute() else ROOT / p
 
 
+# Bump whenever the scorer's logic or the wording of its reasons changes. The
+# profile alone is not enough: translating the output left stored scores with
+# stale text, because the rules that produced them had not changed.
+SCORING_VERSION = 2
+
+
 def profile_fingerprint(profile: dict[str, Any]) -> str:
-    """Identity of the scoring rules, so stored scores can be invalidated when the
-    profile changes. Without this, offers that fall out of the search window keep
-    scores computed under rules that no longer apply - and quietly pollute the
-    ranking with numbers that cannot be reproduced."""
+    """Identity of everything that produced a score, so stored scores can be
+    invalidated when either the profile or the scorer changes. Without this,
+    offers that fall out of the search window keep scores computed under rules
+    that no longer apply - and quietly pollute the ranking with numbers that
+    cannot be reproduced."""
     relevant = {k: profile.get(k) for k in ("category", "preferences", "weights", "bonuses")}
+    relevant["_scoring_version"] = SCORING_VERSION
     blob = json.dumps(relevant, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
 

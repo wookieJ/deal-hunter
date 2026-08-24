@@ -43,8 +43,8 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
     first_run = repo.is_first_run(profile["name"])
 
     if not quiet:
-        print(f"Szukam: profil '{profile['name']}' w {source_name} "
-              f"(kategoria {spec['category_id']}, do {spec.get('max_pages', 3)} stron)...")
+        print(f"Searching: profile '{profile['name']}' on {source_name} "
+              f"(category {spec['category_id']}, up to {spec.get('max_pages', 3)} pages)...")
 
     fetched: list[RawListing] = []
     stats = {"found": 0, "new": 0, "changed": 0, "seen": 0, "disqualified": 0}
@@ -74,7 +74,7 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
             changed_items.append({"uid": raw.uid, "title": raw.title,
                                   "url": raw.url, "changes": changes})
         if not quiet and stats["found"] % 40 == 0:
-            print(f"  ...{stats['found']} ofert")
+            print(f"  ...{stats['found']} offers")
         if limit and stats["found"] >= limit:
             break
 
@@ -105,11 +105,11 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
     if not quiet:
         console.summary(stats)
         if first_run:
-            print("\n  (pierwsze uruchomienie tego profilu - wszystko jest nowe)")
+            print("\n  (first run for this profile - everything is new)")
         console.changes(changed_items)
         if not first_run:
-            console.offers(new_offers, "Nowe oferty - najciekawsze")
-        console.offers(best, "Najlepsze oferty w bazie")
+            console.offers(new_offers, "New offers - most interesting")
+        console.offers(best, "Best offers in the database")
 
     if make_report:
         report_cfg = settings.get("report", {})
@@ -126,7 +126,7 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
             archive.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
         stats["report_path"] = path
         if not quiet:
-            print(f"\nRaport HTML: {path}")
+            print(f"\nHTML report: {path}")
 
     conn.close()
     return stats
@@ -174,7 +174,7 @@ def rescore(repo: Repo, profile: dict[str, Any], settings: dict[str, Any],
 
     repo.commit()
     if not quiet:
-        print(f"  przeliczono {len(stale)} ofert wg aktualnego profilu")
+        print(f"  rescored {len(stale)} offers against the current profile")
     return len(stale)
 
 

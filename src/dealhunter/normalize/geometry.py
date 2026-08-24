@@ -64,9 +64,9 @@ def resolve(brand: str, title: str, size_letter: str, year: int | None) -> dict[
         return empty
 
     if ambiguous:
-        confidence, note = "ambiguous", f"rocznik nieznany, przyjeto {chosen['generation']}"
+        confidence, note = "ambiguous", f"model year unknown, assumed {chosen['generation']}"
     elif not chosen.get("verified", False):
-        confidence, note = "unverified", "geometria niezweryfikowana"
+        confidence, note = "unverified", "geometry unverified"
     else:
         confidence, note = "exact", chosen["generation"]
 

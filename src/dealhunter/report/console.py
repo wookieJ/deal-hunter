@@ -16,7 +16,7 @@ def _distance(offer: dict[str, Any]) -> str:
     label = f"~{km} km" if offer.get("drive_estimated") else f"{km} km"
     if minutes:
         label += f" / {minutes // 60}h{minutes % 60:02d}m" if minutes >= 60 else f" / {minutes} min"
-    return f"autem {label}"
+    return f"{label} by car"
 
 
 def _colour(value: int) -> str:
@@ -25,24 +25,24 @@ def _colour(value: int) -> str:
 
 def summary(stats: dict[str, Any]) -> None:
     print()
-    print(f"{B}=== Podsumowanie ({stats['profile']} @ {stats['source']}) ==={R}")
-    print(f"  znalezionych ofert : {B}{stats['found']}{R}")
-    print(f"  juz znanych        : {stats['seen']}")
-    print(f"  {GREEN}nowych             : {B}{stats['new']}{R}")
+    print(f"{B}=== Summary ({stats['profile']} @ {stats['source']}) ==={R}")
+    print(f"  offers found  : {B}{stats['found']}{R}")
+    print(f"  already known : {stats['seen']}")
+    print(f"  {GREEN}new           : {B}{stats['new']}{R}")
     changed_colour = CYAN if stats["changed"] else ""
-    print(f"  {changed_colour}zmienionych        : {B}{stats['changed']}{R}")
+    print(f"  {changed_colour}changed       : {B}{stats['changed']}{R}")
     if stats.get("rescored"):
-        print(f"  {DIM}przeliczonych      : {stats['rescored']} (zmiana profilu){R}")
+        print(f"  {DIM}rescored      : {stats['rescored']} (profile changed){R}")
     if stats.get("disqualified"):
-        print(f"  {DIM}odrzuconych        : {stats['disqualified']}{R}")
+        print(f"  {DIM}rejected      : {stats['disqualified']}{R}")
     if stats.get("elapsed"):
-        print(f"  {DIM}czas               : {stats['elapsed']:.1f}s{R}")
+        print(f"  {DIM}time          : {stats['elapsed']:.1f}s{R}")
 
 
 def changes(items: list[dict[str, Any]]) -> None:
     if not items:
         return
-    print(f"\n{B}{CYAN}--- Zmiany w znanych ofertach ---{R}")
+    print(f"\n{B}{CYAN}--- Changes to known offers ---{R}")
     for it in items:
         print(f"  {it['title'][:60]}")
         for change in it["changes"]:
@@ -52,21 +52,21 @@ def changes(items: list[dict[str, Any]]) -> None:
 
 def offers(items: list[dict[str, Any]], heading: str, show_reasons: bool = True) -> None:
     if not items:
-        print(f"\n{DIM}(brak: {heading}){R}")
+        print(f"\n{DIM}(none: {heading}){R}")
         return
     print(f"\n{B}--- {heading} ---{R}")
     for i, it in enumerate(items, 1):
         a = it.get("attrs", {})
         colour = _colour(it["value"])
-        price = f"{it['price']:.0f} zl" if it.get("price") else "cena n/d"
+        price = f"{it['price']:.0f} PLN" if it.get("price") else "no price"
         size = (f"{a['frame_size_cm']} cm" if a.get("frame_size_cm")
-                else a.get("frame_size_letter") or a.get("frame_size_raw") or "rozmiar ?")
+                else a.get("frame_size_letter") or a.get("frame_size_raw") or "size ?")
 
         print(f"\n{B}{i:2}. {it['title'][:70]}{R}")
         print(f"    {colour}{B}score {it['value']}/100{R}   {B}{price}{R}   {size}"
-              f"   {a.get('groupset') or 'osprzet ?'}")
+              f"   {a.get('groupset') or 'groupset ?'}")
         meta = [it.get("location") or "", _distance(it),
-                "firma" if it.get("is_business") else "prywatnie"]
+                "business" if it.get("is_business") else "private"]
         if a.get("brakes"):
             meta.append(a["brakes"])
         if a.get("frame_material"):

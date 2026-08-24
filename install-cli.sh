@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 PROJECT="$(pwd)"
 
-[[ -d .venv ]] || { echo "Brak .venv - uruchom najpierw: ./setup.sh"; exit 1; }
+[[ -d .venv ]] || { echo "No .venv found - run ./setup.sh first"; exit 1; }
 .venv/bin/pip install --quiet -e .
 
 pick_bin_dir() {
@@ -26,17 +26,17 @@ pick_bin_dir() {
 BIN_DIR="$(pick_bin_dir)"
 mkdir -p "$BIN_DIR"
 ln -sf "$PROJECT/.venv/bin/deal" "$BIN_DIR/deal"
-echo "Zainstalowano: $BIN_DIR/deal -> $PROJECT/.venv/bin/deal"
+echo "Installed: $BIN_DIR/deal -> $PROJECT/.venv/bin/deal"
 
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     cat <<HINT
 
-$BIN_DIR nie jest na PATH. Dodaj do ~/.zshrc (lub ~/.bashrc):
+$BIN_DIR is not on your PATH. Add this to ~/.zshrc (or ~/.bashrc):
 
     export PATH="$BIN_DIR:\$PATH"
 
-potem otworz nowy terminal.
+then open a new terminal.
 HINT
 else
-    echo "Gotowe. Z dowolnego katalogu: deal run"
+    echo "Done. From any directory: deal run"
 fi
