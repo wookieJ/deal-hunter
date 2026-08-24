@@ -15,8 +15,9 @@ PROFILE = config.load_profile("gravel", use_local=False)   # never the personal 
 BUDGET = PROFILE["preferences"]["budget"]
 AREA = PROFILE["search"]["olx"]["area"]
 pipeline.prepare(PROFILE, SETTINGS)      # resolves the proximity anchor, as a run does
-POZNAN = (52.4064, 16.9252)
-WARSAW = (52.2297, 21.0122)
+# Two arbitrary points ~280 km apart, used only to sanity-check the distance maths.
+CITY_A = (52.4064, 16.9252)
+CITY_B = (52.2297, 21.0122)
 # Fixture "home", deliberately arbitrary: real addresses must not live in a
 # tracked file. The real one is in the gitignored config/settings.local.yml.
 TEST_HOME = {"name": "dom", "lat": 51.7500, "lon": 17.5000}
@@ -102,7 +103,7 @@ class TestLocation(unittest.TestCase):
         self.assertFalse(s.disqualified)
 
     def test_haversine_sanity(self):
-        km = haversine_km(*POZNAN, *WARSAW)
+        km = haversine_km(*CITY_A, *CITY_B)
         self.assertTrue(270 < km < 290, km)
 
 
