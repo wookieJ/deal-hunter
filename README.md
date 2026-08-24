@@ -57,7 +57,7 @@ reads those instead.
 Requires Python 3.11+.
 
 ```bash
-git clone https://github.com/lukaszjedryczka/deal-hunter.git
+git clone https://github.com/wookieJ/deal-hunter.git
 cd deal-hunter
 ./setup.sh                  # creates .venv, installs 3 dependencies
 ./run.sh run                # search, score, store, report

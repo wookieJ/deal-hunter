@@ -147,5 +147,5 @@ First working version. OLX + gravel bikes, run manually from the terminal.
 - Sold or removed offers are never marked inactive.
 - Console and report text is in Polish, matching the marketplace it searches.
 
-[Unreleased]: https://github.com/lukaszjedryczka/deal-hunter/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/lukaszjedryczka/deal-hunter/releases/tag/v0.1.0
+[Unreleased]: https://github.com/wookieJ/deal-hunter/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/wookieJ/deal-hunter/releases/tag/v0.1.0
