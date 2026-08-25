@@ -33,8 +33,10 @@ YAML file** — no code, no plugin, nothing to register.
 ```
 
 Every run also writes `reports/index.html` — one page with **a tab per search**,
-photo thumbnails, driving distance from your door and a direct link. Always the
-same path, so bookmark it once and refresh.
+photo thumbnails, driving distance from your door and a direct link. Sort by best
+match, cheapest or nearest; offers missing a price or a route sink to the bottom
+rather than pretending to be free or next door. Always the same path, so bookmark
+it once and refresh.
 
 ## What a search looks like
 

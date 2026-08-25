@@ -51,6 +51,13 @@
   .tab .count.fresh{background:var(--good);color:var(--card)}
   .panel[hidden]{display:none}
   .empty{color:var(--muted);padding:24px 0}
+  .sortbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+  .sortlabel{color:var(--muted);font-size:12px;margin-right:2px}
+  .sort{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--muted);
+    padding:5px 12px;border-radius:999px;cursor:pointer;font:inherit;font-size:12.5px}
+  .sort:hover{color:var(--fg)}
+  .sort[aria-pressed="true"]{border-color:var(--link);color:var(--link);font-weight:600}
+  .sort-missing{opacity:.55}
 </style></head><body><div class="wrap">
 
 <h1>Deal Hunter</h1>
@@ -67,7 +74,9 @@
 </div>
 
 {% macro card(o, badge='') %}
-<div class="card">
+<div class="card" data-score="{{ o.value }}"
+     data-price="{{ o.price if o.price else '' }}"
+     data-km="{{ o.drive_km if o.drive_km is not none else '' }}">
   {% if o.photos %}<img class="thumb" src="{{ o.photos[0] }}" alt="" loading="lazy">
   {% else %}<div class="thumb"></div>{% endif %}
   <div class="body">
@@ -106,19 +115,74 @@
   <div class="muted" style="margin-bottom:14px">source: {{ t.source }}
     {%- if t.last_run %} &middot; last run: {{ t.last_run[:16].replace('T', ' ') }}{% endif %}</div>
 
+  <div class="sortbar" role="group" aria-label="Sort offers">
+    <span class="sortlabel">Sort by</span>
+    <button class="sort" data-sort="score" aria-pressed="true">Best match</button>
+    <button class="sort" data-sort="price" aria-pressed="false">Cheapest</button>
+    <button class="sort" data-sort="km" aria-pressed="false">Nearest</button>
+  </div>
+
   {% if t.changed %}<h2>Changes to known offers ({{ t.changed|length }})</h2>
-  {% for o in t.changed %}{{ card(o, 'chg') }}{% endfor %}{% endif %}
+  <div class="card-list">{% for o in t.changed %}{{ card(o, 'chg') }}{% endfor %}</div>{% endif %}
 
   {% if t.new %}<h2>New offers ({{ t.new|length }})</h2>
-  {% for o in t.new %}{{ card(o, 'new') }}{% endfor %}{% endif %}
+  <div class="card-list">{% for o in t.new %}{{ card(o, 'new') }}{% endfor %}</div>{% endif %}
 
   <h2>Best offers ({{ t.top|length }})</h2>
-  {% if t.top %}{% for o in t.top %}{{ card(o) }}{% endfor %}
+  {% if t.top %}<div class="card-list">{% for o in t.top %}{{ card(o) }}{% endfor %}</div>
   {% else %}<div class="empty">Nothing scored yet for this search. Run <code>deal run -p {{ t.name }}</code>.</div>{% endif %}
 </section>
 {% endfor %}
 
 <script>
+// Sorting reorders the cards already on the page - no round trip, and it works
+// from a file:// URL. Offers missing the value being sorted on (no price, or a
+// location we could not route to) always sink to the bottom rather than pretending
+// to be zero, and are dimmed so it is obvious why they are there.
+(function () {
+  var KEY = 'dealhunter-sort';
+
+  function value(card, key) {
+    var raw = card.getAttribute('data-' + key);
+    if (raw === null || raw === '') { return null; }
+    var n = parseFloat(raw);
+    return isNaN(n) ? null : n;
+  }
+
+  function sortPanel(panel, key) {
+    panel.querySelectorAll('.card-list').forEach(function (list) {
+      var cards = Array.prototype.slice.call(list.children);
+      cards.forEach(function (c) {
+        c.classList.toggle('sort-missing', key !== 'score' && value(c, key) === null);
+      });
+      cards.sort(function (a, b) {
+        var x = value(a, key), y = value(b, key);
+        if (x === null && y === null) { return 0; }
+        if (x === null) { return 1; }          // unknown always last
+        if (y === null) { return -1; }
+        return key === 'score' ? y - x : x - y;  // score high first, price/km low first
+      });
+      cards.forEach(function (c) { list.appendChild(c); });
+    });
+    panel.querySelectorAll('.sort').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-sort') === key ? 'true' : 'false');
+    });
+  }
+
+  function apply(key) {
+    document.querySelectorAll('.panel').forEach(function (p) { sortPanel(p, key); });
+    try { localStorage.setItem(KEY, key); } catch (e) {}
+  }
+
+  document.querySelectorAll('.sort').forEach(function (button) {
+    button.addEventListener('click', function () { apply(button.getAttribute('data-sort')); });
+  });
+
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  if (saved && saved !== 'score') { apply(saved); }
+})();
+
 // Tabs remember the last one you looked at, so refreshing after a run keeps you
 // where you were instead of throwing you back to the first search.
 (function () {

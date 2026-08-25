@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allegro source adapter
 - Desktop notifications and scheduled runs
 
+## [0.7.0] - 2026-08-25
+
+### Added
+- **Sorting in the report**: best match, cheapest or nearest, per tab, remembered
+  between refreshes. Offers with no price or no routed distance sort last and are
+  dimmed, instead of being treated as free or next door.
+
+### Changed
+- One report template instead of two. The per-profile `<profile>_latest.html` file
+  duplicated the markup of the tabbed report and would otherwise have kept a copy
+  without sorting; `report.keep_dated_copies` now archives the combined report.
+
 ## [0.6.0] - 2026-08-24
 
 ### Changed

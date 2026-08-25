@@ -119,16 +119,13 @@ def run(profile_name: str, settings: dict[str, Any], *, limit: int | None = None
         # One stable path, always overwritten: a new filename per run cannot be
         # bookmarked and just accumulates copies of a view that is only ever
         # interesting in its latest state.
-        path = html.render(report_dir / f"{profile['name']}_latest.html",
-                           profile["name"], source_name, stats,
-                           new_offers, changed_offers, best)
-        if report_cfg.get("keep_dated_copies"):
-            stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
-            archive = report_dir / f"{profile['name']}_{stamp}.html"
-            archive.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
         index = build_index(repo, settings, report_dir,
                             current={"name": profile["name"], "stats": stats,
                                      "new": new_offers, "changed": changed_offers})
+        if report_cfg.get("keep_dated_copies"):
+            stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+            archive = report_dir / f"index_{stamp}.html"
+            archive.write_text(index.read_text(encoding="utf-8"), encoding="utf-8")
         stats["report_path"] = index
         if not quiet:
             print(f"\nHTML report: {index}")

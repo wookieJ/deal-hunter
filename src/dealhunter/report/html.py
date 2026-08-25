@@ -18,19 +18,6 @@ def _prepare(*groups: list[dict]) -> None:
     domain's own `display:` block - the reporter stays product-agnostic."""
 
 
-def render(path: Path, profile: str, source: str, stats: dict[str, Any],
-           new: list[dict], changed: list[dict], top: list[dict]) -> Path:
-    """Single-profile report."""
-    _prepare(new, changed, top)
-    html = _ENV.get_template("template.html.j2").render(
-        profile=profile, source=source, stats=stats, new=new, changed=changed, top=top,
-        generated=datetime.now().strftime("%Y-%m-%d %H:%M"),
-    )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(html, encoding="utf-8")
-    return path
-
-
 def render_tabs(path: Path, tabs: list[dict[str, Any]]) -> Path:
     """One report, one tab per search - so several profiles share a single link."""
     for tab in tabs:
